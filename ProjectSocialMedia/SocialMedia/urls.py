@@ -15,4 +15,9 @@ urlpatterns = [
     path('logout/', views.user_logout, name='logout'),
     path('register/', views.register, name='register'),
     path('user_login/', views.user_login, name='user_login'),
+    # url profile user
+    path('profiles/', views.profile_list, name='profile_list'),
+    path('profiles/<int:pk>/', views.user_profile, name='user_profile'), 
+    path('profiles/update/<int:user_id>/', views.profile_update, name='profile_update'),
+    path('profiles/delete/<int:user_id>/', views.profile_delete, name='profile_delete'),
 ]

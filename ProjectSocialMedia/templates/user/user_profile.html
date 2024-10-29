@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="profile_container">
+    <div class="profile_layout">
+        <div class="profile_header">
+            <div class="profile_cover_photo">
+                {% if profile.cover_photo %}
+                    <img src="{{ profile.cover_photo.url }}" alt="Cover Photo" class="profile-cover-photo">
+                {% else %}
+                    <div class="default-cover-photo">No cover photo uploaded.</div>
+                {% endif %}
+            </div>
+            <div class="profile_avatar">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="profile-avatar">
+                {% else %}
+                    <p>No avatar uploaded.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="profile_info">
+            <h1>{{ profile.user.username }}'s Profile</h1>
+            <div class="info_details">
+                <p><strong>Address:</strong> {{ profile.address }}</p>
+                <p><strong>Bio:</strong> {{ profile.bio }}</p>
+                <p><strong>Status:</strong> {{ profile.status }}</p>
+            </div>
+            <div class="profile_actions">
+                {% if profile.status == 'inactive' %}
+                    <div class="alert alert-warning">
+                        Tài khoản đã bị tạm ngưng hoạt động nên không thể chỉnh sửa.
+                    </div>
+                {% else %}
+                    <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Edit Profile</a>
+                {% endif %}
+            </div>
+            {% if user.is_staff %}
+                <div class="admin_actions" style="margin-top: 20px;">
+                    <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Manage Users</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if not profile %}
+        <h1>Create Your Profile</h1>
+        <p>You do not have a profile yet. Please create one.</p>
+        <div class="profile_actions">
+            <a href="{% url 'SocialMedia:profile_create' %}" class="btn btn-primary">Add Profile</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

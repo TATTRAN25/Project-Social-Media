@@ -47,7 +47,7 @@
               </li>
               {% if user.is_authenticated %}
                   <li class="nav-item">
-                      <a class="nav-link" href="#">
+                      <a class="nav-link" href="{% url 'SocialMedia:user_profile' user.userprofileinfo.id %}">
                           {% if user.is_staff %}
                               Admin: {{ user.username }}
                           {% else %}
@@ -58,14 +58,14 @@
                   <li class="nav-item">
                       <a class="nav-link" href="{% url 'SocialMedia:logout' %}">Logout</a>
                   </li>
-                {% else %}
+              {% else %}
                   <li class="nav-item">
                       <a class="nav-link" href="#">Guest</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{% url 'SocialMedia:user_login' %}">Login</a>
-                 </li>
-                {% endif %}
+                      <a class="nav-link" href="{% url 'SocialMedia:user_login' %}">Login</a>
+                  </li>
+              {% endif %}
             </ul>
           </div>
         </div>
