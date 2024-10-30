@@ -8,17 +8,6 @@
         {% csrf_token %}
         {{ form.as_p }}
         
-        {% if request.user.is_staff %}
-            <div class="form-group">
-                <label for="id_status">Status:</label>
-                <select name="status" id="id_status">
-                    <option value="active" {% if form.instance.status == 'active' %}selected{% endif %}>Active</option>
-                    <option value="inactive" {% if form.instance.status == 'inactive' %}selected{% endif %}>Inactive</option>
-                    <option value="banned" {% if form.instance.status == 'banned' %}selected{% endif %}>Banned</option>
-                </select>
-            </div>
-        {% endif %}
-        
         <button type="submit" class="btn btn-primary">Save</button>
     </form>
     
