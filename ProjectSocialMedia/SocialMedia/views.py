@@ -1,7 +1,7 @@
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.forms import SetPasswordForm,PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models.signals import post_save
@@ -168,6 +168,25 @@ def reset_password(request, user_id):
         form = SetPasswordForm(user)
 
     return render(request, 'user/reset_password.html', {'form': form})
+
+# Thay đổi mật khẩu@login_required
+@login_required
+def change_password(request, user_id):
+    profile = get_object_or_404(UserProfileInfo, id=user_id)
+    user = profile.user  
+
+    if request.method == 'POST':
+        form = PasswordChangeForm(user, request.POST) 
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  
+            messages.success(request, 'Mật khẩu đã được thay đổi thành công.')
+            return redirect('SocialMedia:user_profile', pk=profile.pk)  
+    else:
+        form = PasswordChangeForm(user)  
+
+    return render(request, 'user/change_password.html', {'form': form})
+
 def index(request):
     return render(request, 'home/index.html')
 

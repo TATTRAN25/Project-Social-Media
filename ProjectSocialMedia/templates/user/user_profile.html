@@ -34,6 +34,9 @@
                 {% else %}
                     <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Edit Profile</a>
                 {% endif %}
+                <div class="change_password_action" style="margin-top: 20px;">
+                    <a href="{% url 'SocialMedia:change_password' profile.id %}" class="btn btn-warning">Change Password</a>
+                </div>
             </div>
             {% if user.is_staff %}
                 <div class="admin_actions" style="margin-top: 20px;">

@@ -1275,3 +1275,82 @@ footer p a:hover {
 .profile-form button {
     margin-top: 10px; /* Khoảng cách trên nút */
 }
+
+.change-password__container {
+    max-width: 50%;  /* Set maximum width */
+    margin: auto;      /* Center the container */
+    padding: 100px;
+    background-color: white; /* Set background color */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Heading style */
+.change-password__title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Error message style */
+.change-password__error-message {
+    color: red;
+    text-align: center;
+    margin: 10px 0;
+}
+
+/* Form field styles */
+.change-password__form {
+    display: flex;
+    flex-direction: column; /* Stack fields vertically */
+}
+
+/* Input field styles */
+.change-password__input {
+    width: 100%; /* Full width */
+    padding: 10px;
+    margin: 10px 0; /* Space between fields */
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 4px; /* Rounded corners */
+    transition: border 0.3s; /* Smooth transition */
+}
+
+/* Focus effect for input fields */
+.change-password__input:focus {
+    border: 1px solid #ff8c00; /* Change border color on focus */
+    outline: none; /* Remove outline */
+}
+
+/* Button styles */
+.change-password__button {
+    padding: 10px;
+    background-color: #ff8c00; /* Button color */
+    color: white;
+    border: none; /* Remove border */
+    border-radius: 4px; /* Rounded corners */
+    cursor: pointer; /* Pointer on hover */
+    transition: background 0.3s; /* Smooth background transition */
+}
+
+/* Button hover effect */
+.change-password__button:hover {
+    background-color: #45a049; /* Darker shade on hover */
+}
+
+/* Cancel button styles */
+.change-password__cancel-button {
+    display: block; /* Block display */
+    text-align: center; /* Center text */
+    margin-top: 10px; /* Space above */
+    color: #ff8c00; /* Text color */
+    text-decoration: none; /* Remove underline */
+    padding: 10px; /* Padding */
+    border: 1px solid #ff8c00; /* Border color */
+    border-radius: 4px; /* Rounded corners */
+    transition: background 0.3s, color 0.3s; /* Smooth transition */
+}
+
+/* Cancel button hover effect */
+.change-password__cancel-button:hover {
+    background-color: #ff8c00; /* Background color on hover */
+    color: white; /* Text color on hover */
+}
