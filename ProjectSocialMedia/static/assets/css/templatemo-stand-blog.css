@@ -365,11 +365,12 @@ header .navbar {
 }
 
 .call-to-action .main-content {
-	padding: 40px;
+	padding: 130px;
 	background-image: url(../images/cta-bg.jpg);
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: cover;
+	text-align: center;
 }
 
 .call-to-action .main-content span {
@@ -377,6 +378,7 @@ header .navbar {
 	font-size: 18px;
 	font-weight: 900;
 	letter-spacing: 0.5px;
+	display: inline-block;
 }
 
 .call-to-action .main-content h4 {
@@ -386,10 +388,11 @@ header .navbar {
 	font-size: 26px;
 	font-weight: 900;
 	letter-spacing: 0.25px;
+	display: inline-block;
 }
 
 .call-to-action .main-content .main-button {
-	text-align: right;
+	text-align: center;
 	margin-top: 12px;
 }
 
@@ -1119,7 +1122,7 @@ footer p a:hover {
     width: 100%;
     height: 300px; /* Tăng chiều cao của ảnh bìa */
     overflow: hidden; /* Ẩn phần vượt ra ngoài */
-	left: 40%; 
+	left: 20%; 
 }
 
 .profile-cover-photo {
@@ -1142,8 +1145,8 @@ footer p a:hover {
 
 .profile_avatar {
     position: absolute;
-    bottom: -30px; /* Đặt avatar ở dưới cùng của cover photo */
-    left: 40%; /* Di chuyển avatar qua bên trái một chút */
+    bottom: 100px; /* Đặt avatar ở dưới cùng của cover photo */
+    left: 50%; /* Di chuyển avatar qua bên trái một chút */
     transform: translateX(-50%); /* Căn giữa avatar */
     width: 120px; /* Kích thước avatar */
     height: 120px; /* Kích thước avatar */

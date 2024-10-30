@@ -16,11 +16,11 @@ class UserLoginForm(forms.Form):
 class UserProfileInfoForm(forms.ModelForm):
     class Meta:
         model = UserProfileInfo
-        fields = ['address', 'bio', 'avatar', 'cover_photo']  
+        fields = ['address', 'bio', 'avatar', 'cover_photo', 'status']  # Chắc chắn rằng status có ở đây
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None) 
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+
         if not self.user.is_staff:
-            self.fields.pop('status')
+            self.fields.pop('status', None)
