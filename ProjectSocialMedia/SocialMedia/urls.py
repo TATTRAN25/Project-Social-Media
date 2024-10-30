@@ -20,4 +20,8 @@ urlpatterns = [
     path('profiles/<int:pk>/', views.user_profile, name='user_profile'), 
     path('profiles/update/<int:user_id>/', views.profile_update, name='profile_update'),
     path('profiles/delete/<int:user_id>/', views.profile_delete, name='profile_delete'),
+    # url reset password with OTP
+    path('send_otp/', views.send_otp, name='send_otp'),
+    path('verify_otp/', views.verify_otp, name='verify_otp'),
+    path('reset_password/<int:user_id>/', views.reset_password, name='reset_password'),
 ]

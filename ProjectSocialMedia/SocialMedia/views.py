@@ -1,14 +1,17 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.http import HttpResponseRedirect,HttpResponse
-from django.contrib import messages
-from .forms import UserRegistrationForm,UserProfileInfoForm
-from .models import UserProfileInfo
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.utils import timezone
+from .forms import UserRegistrationForm, UserProfileInfoForm
+from .models import UserProfileInfo, PasswordResetOTP
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -99,7 +102,6 @@ def profile_update(request, user_id):
     return render(request, 'user/profile_form.html', {'form': form, 'profile': profile})
 
 def profile_delete(request, user_id):
-    # Kiểm tra quyền admin
     if request.user.is_staff:
         user = get_object_or_404(User, id=user_id)
         user_profile = UserProfileInfo.objects.filter(user=user).first()
@@ -109,6 +111,63 @@ def profile_delete(request, user_id):
         return redirect('SocialMedia:profile_list')
     else:
         return render(request, 'user/profile_list.html')
+    
+# Gửi mã OTP về cho người dùng
+def send_otp(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            otp_instance = PasswordResetOTP(user=user)
+            otp_instance.generate_otp()
+
+            send_mail(
+                'Your OTP for Password Reset',
+                f'Your OTP is {otp_instance.otp}',
+                'anhtuan251104@gmail.com',  
+                [email],
+                fail_silently=False,
+            )
+            messages.success(request, 'OTP đã được gửi tới email của bạn.')
+            return redirect('SocialMedia:verify_otp')
+        else:
+            messages.error(request, 'Email không tồn tại.')
+    
+    return render(request, 'user/send_otp.html')
+
+# Xác thực đoạn mã OTP cho người dùng
+def verify_otp(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        otp = request.POST.get('otp')
+
+        try:
+            user = User.objects.get(email=email)
+            otp_instance = PasswordResetOTP.objects.get(user=user, otp=otp)
+
+            if (timezone.now() - otp_instance.created_at).seconds < 300:
+                return redirect('SocialMedia:reset_password', user_id=user.id)
+            else:
+                messages.error(request, 'OTP đã hết hạn.')
+        except (User.DoesNotExist, PasswordResetOTP.DoesNotExist) as e:
+            messages.error(request, 'OTP không hợp lệ.')
+            print(f'Error: {e}')
+
+    return render(request, 'user/verify_otp.html')
+# Reset password
+def reset_password(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        form = SetPasswordForm(user, request.POST)
+        if form.is_valid():
+            user.set_password(form.cleaned_data['new_password1'])
+            user.save()
+            messages.success(request, 'Password đã được reset thành công.')
+            return redirect('SocialMedia:user_login') 
+    else:
+        form = SetPasswordForm(user)
+
+    return render(request, 'user/reset_password.html', {'form': form})
 def index(request):
     return render(request, 'home/index.html')
 

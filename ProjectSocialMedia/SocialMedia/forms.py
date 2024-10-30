@@ -23,4 +23,4 @@ class UserProfileInfoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if not self.user.is_staff:
-            self.fields.pop('status', None)
+            self.fields.pop('status')
