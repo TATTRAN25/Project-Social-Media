@@ -10,8 +10,8 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm
-from .models import UserProfileInfo, PasswordResetOTP
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
+from .models import UserProfileInfo, PasswordResetOTP, Page, Post
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -84,7 +84,11 @@ def profile_list(request):
 @login_required
 def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
-    return render(request, 'user/user_profile.html', {'profile': profile})
+    if request.user.is_staff:
+        pages = Page.objects.all()  
+    else:
+        pages = Page.objects.filter(author=request.user) 
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages})
 
 @login_required
 def profile_update(request, user_id):
@@ -186,8 +190,117 @@ def change_password(request, user_id):
 
     return render(request, 'user/change_password.html', {'form': form})
 
+# Crud Page
+@login_required
+def manage_page(request, page_id=None):
+    if page_id:
+        # Cập nhật trang nếu page_id có giá trị
+        page = get_object_or_404(Page, id=page_id)
+        form = PageForm(request.POST or None, instance=page)
+    else:
+        # Tạo trang mới
+        page = None
+        form = PageForm(request.POST or None)
+
+    if form.is_valid():
+        page = form.save(commit=False)
+        page.author = request.user
+        page.save()
+        if page_id:
+            messages.success(request, 'Trang đã được cập nhật thành công!')
+            return redirect('SocialMedia:page_list')
+        else:
+            messages.success(request, 'Trang đã được tạo thành công!')
+            return redirect('SocialMedia:page_list')
+
+    return render(request, 'Social/manage_page.html', {'form': form, 'page': page})
+
+@login_required
+def page_list(request):
+    # Kiểm tra trạng thái của người dùng
+    if request.user.userprofileinfo.status == 'inactive':
+        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xem bài viết.')
+        return redirect('SocialMedia:index')
+
+    # Xử lý yêu cầu xóa trang
+    if request.method == 'POST' and 'delete_page_id' in request.POST:
+        page_id = request.POST['delete_page_id']
+        page = get_object_or_404(Page, id=page_id)
+        if page.author == request.user or request.user.is_staff:
+            page.delete()
+            messages.success(request, 'Trang đã được xóa thành công!')
+        else:
+            messages.error(request, 'Bạn không có quyền xóa trang này.')
+        return redirect('SocialMedia:page_list')
+
+    # Lấy danh sách trang dựa trên quyền truy cập
+    if request.user.is_staff:
+        pages = Page.objects.all() 
+    else:
+        pages = Page.objects.filter(author=request.user)  
+
+    return render(request, 'Social/page_list.html', {'pages': pages})
+
+# Crud Post
+@login_required
+def manage_post(request, post_id=None, page_id=None):
+    # Kiểm tra trạng thái tài khoản
+    if request.user.userprofileinfo.status == 'inactive':
+        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể đăng bài viết.')
+        return redirect('SocialMedia:index')
+
+    # Xử lý bài viết đã tồn tại
+    if post_id:
+        post = get_object_or_404(Post, id=post_id)
+        if post.author != request.user and not request.user.is_staff:
+            messages.error(request, 'Bạn không có quyền chỉnh sửa bài viết này.')
+            return redirect('SocialMedia:post_detail', post_id=post.id)
+        form = PostForm(request.POST or None, request.FILES or None, instance=post) 
+        action = 'Cập Nhật'
+    else:
+        post = None
+        form = PostForm(request.POST or None, request.FILES or None)  
+        action = 'Đăng Bài Viết'
+
+    # Xử lý form khi được gửi
+    if request.method == 'POST':
+        if form.is_valid():
+            new_post = form.save(commit=False)
+            if not post_id:
+                new_post.page = get_object_or_404(Page, id=page_id)
+                new_post.author = request.user
+            new_post.save()
+            messages.success(request, f'Bài viết đã được {action.lower()} thành công!')
+            return redirect('SocialMedia:post_detail', post_id=new_post.id)
+
+    return render(request, 'Social/manage_post.html', {
+        'form': form,
+        'post': post,
+        'action': action
+    })
+@login_required
+def post_detail(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    # Kiểm tra trạng thái tài khoản
+    if request.user.userprofileinfo.status == 'inactive':
+        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xóa bài viết.')
+        return redirect('SocialMedia:index')
+
+    # Xử lý xóa bài viết
+    if request.method == 'POST':
+        if request.user == post.author or request.user.is_staff:
+            post.delete()
+            messages.success(request, 'Bài viết đã được xóa thành công!')
+            return redirect('SocialMedia:page_list')
+        else:
+            messages.error(request, 'Bạn không có quyền xóa bài viết này.')
+
+    return render(request, 'Social/post_detail.html', {'post': post})
 def index(request):
-    return render(request, 'home/index.html')
+    posts = Post.objects.all()  
+    pages = Page.objects.all()  
+    return render(request, 'home/index.html', {'posts': posts, 'pages': pages})
 
 def about(request):
     return render(request, 'home/about.html')

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="container">
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.image }}</p>
+    <p>{{ post.content }}</p>
+    <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
+    
+    <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Xóa Bài Viết</button>
+    </form>
+    <a href="{% url 'SocialMedia:manage_post_edit' post.id %}" class="btn btn-secondary">Chỉnh sửa Bài Viết</a>
+    <a href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}" class="btn btn-primary">Quay lại Trang</a>
+</div>
+{% endblock %}

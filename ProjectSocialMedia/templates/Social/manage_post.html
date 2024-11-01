@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="container">
+    <h1>{{ action }} Bài Viết</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">{{ action }}</button>
+    </form>
+    {% if post %}
+    <hr>
+    <h2>Thông Tin Bài Viết Hiện Tại</h2>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    {% if post.image %}
+    <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style="max-width: 100%; height: auto;">
+    {% endif %}
+    <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
+    {% endif %}
+</div>
+{% endblock %}
