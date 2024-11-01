@@ -101,7 +101,6 @@ def profile_update(request, user_id):
         form = UserProfileInfoForm(instance=profile, user=request.user)
 
     return render(request, 'user/profile_form.html', {'form': form, 'profile': profile})
-
 def profile_delete(request, user_id):
     if request.user.is_staff:
         user = get_object_or_404(User, id=user_id)
