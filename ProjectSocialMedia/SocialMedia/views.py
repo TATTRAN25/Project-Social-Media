@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from .forms import UserRegistrationForm, UserProfileInfoForm
 from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip
+from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -228,7 +229,7 @@ def accept_friend_request(request, request_id):
 
     # Create a Friendship record
     FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
-    
+
     return redirect('SocialMedia:friends_list')
 
 # Display pending friend requests for the user
@@ -240,8 +241,21 @@ def pending_friend_requests(request):
 # List friend
 @login_required
 def friends_list(request):
-    friendships = FriendShip.objects.filter(user1=request.user).select_related('user2')
-    return render(request, 'friend/friends_list.html', {'friendships': friendships})
+    # Fetch friendships where the logged-in user is either user1 or user2
+    friendships = FriendShip.objects.filter(
+        Q(user1=request.user) | Q(user2=request.user)
+    ).select_related('user1', 'user2')
+
+    # Prepare a list of friends
+    friends = []
+    for friendship in friendships:
+        # Determine which user is the friend
+        if friendship.user1 == request.user:
+            friends.append(friendship.user2)
+        else:
+            friends.append(friendship.user1)
+
+    return render(request, 'friend/friends_list.html', {'friends': friends})
 
 # Search friend
 def search_friends(request):
@@ -256,5 +270,4 @@ def unfriend(request, friend_id):
     friendrequest = get_object_or_404(FriendRequest, from_user=request.user, to_user=friend_id)
     friendship.delete()
     friendrequest.delete()
-    
     return redirect('SocialMedia:friends_list')

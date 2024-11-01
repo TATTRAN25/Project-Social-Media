@@ -15,15 +15,13 @@
 <div class="container mt-5">
     <table>
         <tr>
-            <th>Id</th>
             <th>Username</th>
             <th></th>
         </tr>
-        {% for friendship in friendships %}
+        {% for friend in friends %}
         <tr>
-            <td>{{ friendship.user2.id }}</td>
-            <td>{{ friendship.user2 }}</td>
-            <td><a href="{% url 'SocialMedia:unfriend' friendship.user2.id %}" class="btn btn-danger">Unfriend</a></td>
+            <td>{{ friend }}</td>
+            <td><a href="{% url 'SocialMedia:unfriend' friend.id %}" class="btn btn-danger">Unfriend</a></td>
         </tr>
         {% endfor %}
     </table>
