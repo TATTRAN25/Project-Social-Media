@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from .forms import UserRegistrationForm, UserProfileInfoForm
-from .models import UserProfileInfo, PasswordResetOTP
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -201,3 +201,60 @@ def post_details(request):
 
 def contact(request):
     return render(request, 'home/contact.html')
+
+# Handle friend request
+# Send friend request
+@login_required
+def send_friend_request(request, user_id):
+    to_user = get_object_or_404(User, id=user_id)
+    # Ensure a request isn't already sent
+    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+        FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+    return redirect('SocialMedia:search_friends')
+
+# Reject friend request
+@login_required
+def decline_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    friend_request.delete()
+    return redirect('SocialMedia:pending_friend_requests')
+
+# Add friend
+@login_required
+def accept_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    friend_request.accepted = True
+    friend_request.save()
+
+    # Create a Friendship record
+    FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
+    
+    return redirect('SocialMedia:friends_list')
+
+# Display pending friend requests for the user
+@login_required
+def pending_friend_requests(request):
+    requests = FriendRequest.objects.filter(to_user=request.user, accepted=False)
+    return render(request, 'friend/pending_requests.html', {'requests': requests})
+
+# List friend
+@login_required
+def friends_list(request):
+    friendships = FriendShip.objects.filter(user1=request.user).select_related('user2')
+    return render(request, 'friend/friends_list.html', {'friendships': friendships})
+
+# Search friend
+def search_friends(request):
+    query = request.GET.get('friend_name')
+    results = []
+    if query:
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
+    return render(request, 'friend/search_friends.html', {'results': results})
+
+def unfriend(request, friend_id):
+    friendship = get_object_or_404(FriendShip, user1=request.user, user2=friend_id)
+    friendrequest = get_object_or_404(FriendRequest, from_user=request.user, to_user=friend_id)
+    friendship.delete()
+    friendrequest.delete()
+    
+    return redirect('SocialMedia:friends_list')

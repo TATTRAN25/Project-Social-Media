@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+</style>
+<div class="container mt-5">
+    <table>
+        <tr>
+            <th>Id</th>
+            <th>Username</th>
+            <th></th>
+        </tr>
+        {% for friendship in friendships %}
+        <tr>
+            <td>{{ friendship.user2.id }}</td>
+            <td>{{ friendship.user2 }}</td>
+            <td><a href="{% url 'SocialMedia:unfriend' friendship.user2.id %}" class="btn btn-danger">Unfriend</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
