@@ -27,6 +27,7 @@
                 <p><strong>Status:</strong> {{ profile.status }}</p>
             </div>
             <div class="profile_actions">
+            {% if profile.user == current_user %}
                 {% if profile.status == 'inactive' %}
                     <div class="alert alert-warning">
                         Tài khoản đã bị tạm ngưng hoạt động nên không thể chỉnh sửa.
@@ -42,6 +43,7 @@
                 <div class="admin_actions" style="margin-top: 20px;">
                     <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Manage Users</a>
                 </div>
+            {% endif %}
             {% endif %}
             <a href="{% url 'SocialMedia:friends_list' %}" class="btn btn-primary">Friend list</a>
         </div>

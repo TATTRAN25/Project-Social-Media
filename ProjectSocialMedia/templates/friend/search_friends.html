@@ -102,8 +102,17 @@
     <ul>
         {% for user in results %}
             <li>
-                {{ user.username }}
-                <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+                <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
+                {% if friend_ship.user1 == user or friend_ship.user2 == user %}
+                <span>Friend</span>
+                {% else %}
+                    {% if friend_request.from_user == user or friend_request.to_user == user %}
+                    <span>Send</span>
+                    {% else %}
+                    <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+                    {% endif %}
+                
+                {% endif %}
             </li>
         {% empty %}
             <li>No results found.</li>

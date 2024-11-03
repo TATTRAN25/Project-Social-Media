@@ -85,7 +85,8 @@ def profile_list(request):
 @login_required
 def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
-    return render(request, 'user/user_profile.html', {'profile': profile})
+    current_user = request.user
+    return render(request, 'user/user_profile.html', {'profile': profile, 'current_user':current_user})
 
 @login_required
 def profile_update(request, user_id):
@@ -208,7 +209,7 @@ def contact(request):
 def send_friend_request(request, user_id):
     to_user = get_object_or_404(User, id=user_id)
     # Ensure a request isn't already sent
-    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists() and not FriendRequest.objects.filter(from_user=to_user, to_user=request.user).exists():
         FriendRequest.objects.create(from_user=request.user, to_user=to_user)
     return redirect('SocialMedia:search_friends')
 
@@ -257,16 +258,31 @@ def friends_list(request):
     return render(request, 'friend/friends_list.html', {'friends': friends})
 
 # Search friend
+@login_required
 def search_friends(request):
+    friend_request = FriendRequest()
+    if (FriendRequest.objects.filter(from_user=request.user).exists()):
+        friend_request = FriendRequest.objects.get(from_user=request.user)
+    friend_ship = FriendShip()
+    if (FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user)).exists()):
+        friend_ship = FriendShip.objects.get(Q(user1=request.user) | Q(user2=request.user))
+
     query = request.GET.get('friend_name')
     results = []
     if query:
         results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
-    return render(request, 'friend/search_friends.html', {'results': results})
+            
+    return render(request, 'friend/search_friends.html', {'results': results, 'friend_request':friend_request, 'friend_ship':friend_ship})
 
 def unfriend(request, friend_id):
-    friendship = get_object_or_404(FriendShip, user1=request.user, user2=friend_id)
-    friendrequest = get_object_or_404(FriendRequest, from_user=request.user, to_user=friend_id)
+    friendship = get_object_or_404(
+        FriendShip, 
+        Q(user1=request.user, user2=friend_id) | Q(user1=friend_id, user2=request.user)
+    )
+    friendrequest = get_object_or_404(
+        FriendRequest, 
+        Q(from_user=request.user, to_user=friend_id) | Q(from_user=friend_id, to_user=request.user)
+    )
     friendship.delete()
     friendrequest.delete()
     return redirect('SocialMedia:friends_list')
