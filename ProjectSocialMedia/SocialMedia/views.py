@@ -209,7 +209,7 @@ def contact(request):
 def send_friend_request(request, user_id):
     to_user = get_object_or_404(User, id=user_id)
     # Ensure a request isn't already sent
-    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists() and not FriendRequest.objects.filter(from_user=to_user, to_user=request.user).exists():
+    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
         FriendRequest.objects.create(from_user=request.user, to_user=to_user)
     return redirect('SocialMedia:search_friends')
 
@@ -279,10 +279,9 @@ def unfriend(request, friend_id):
         FriendShip, 
         Q(user1=request.user, user2=friend_id) | Q(user1=friend_id, user2=request.user)
     )
-    friendrequest = get_object_or_404(
-        FriendRequest, 
+    friendrequest = FriendRequest.objects.filter(
         Q(from_user=request.user, to_user=friend_id) | Q(from_user=friend_id, to_user=request.user)
     )
-    friendship.delete()
     friendrequest.delete()
+    friendship.delete()
     return redirect('SocialMedia:friends_list')
