@@ -85,10 +85,7 @@ def profile_list(request):
 @login_required
 def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
-    if request.user.is_staff:
-        pages = Page.objects.all()  
-    else:
-        pages = Page.objects.filter(author=request.user) 
+    pages = Page.objects.filter(author=profile.user)
     return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages})
 
 @login_required

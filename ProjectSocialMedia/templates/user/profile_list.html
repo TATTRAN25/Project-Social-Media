@@ -4,10 +4,10 @@
 <link rel="stylesheet" href="{% static 'assets/css/style_profile.css' %}">
 
 {% block body_block %}
-<div class="profile_list_container">
-    <h1>User Profile List</h1>
+<div class="profile-list-container">
+    <h1 class="profile-title">User Profile List</h1>
     {% if profiles %}
-    <table class="profile_table">
+    <table class="profile-table">
         <thead>
             <tr>
                 <th>Username</th>
@@ -38,7 +38,7 @@
         </tbody>
     </table>
     {% else %}
-    <p>No profiles found.</p>
+    <p class="no-profiles-message">No profiles found.</p>
     {% endif %}
 </div>
 {% endblock %}
