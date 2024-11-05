@@ -35,9 +35,11 @@ class Page(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    like_pages = models.ManyToManyField(User, related_name='liked_pages', blank=True)  #
 
     def __str__(self):
         return self.title
+
 
 class Post(models.Model):
     page = models.ForeignKey(Page, related_name='posts', on_delete=models.CASCADE)

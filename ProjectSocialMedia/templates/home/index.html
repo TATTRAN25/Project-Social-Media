@@ -202,7 +202,7 @@
     likeButtons.forEach(button => {
         button.addEventListener('click', function () {
             const postId = button.getAttribute('data-post-id');
-            const url = `/SocialMedia/like/${postId}/`;  // Đảm bảo URL đúng với view Django
+            const url = `/SocialMedia/like/${postId}/`;
 
             fetch(url, {
                 method: 'POST',

@@ -1,21 +1,28 @@
 {% extends 'base.html' %}
 
+{% load static %}
+<link rel="stylesheet" href="{% static 'assets/css/style_post_detail.css' %}">
+
 {% block body_block %}
-<div class="container">
-    <h1>Tên bài viết: {{ post.title }}</h1>
+<div class="container post-detail-container">
+    <h1 class="post-title">Tiêu đề: {{ post.title }}</h1>
     {% if post.image %}
-        <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style="max-width: 400px; height: 400px;">
+        <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" class="post-image">
     {% else %}
-        <p>Không có hình ảnh</p>
+        <p class="no-image">Không có hình ảnh</p>
     {% endif %}
-    <p>Nội dung: {{ post.content }}</p>
-    <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
+    <p class="post-content">Nội dung: {{ post.content }}</p>
+    <p class="post-author"><strong>Tác giả:</strong> {{ post.author.username }}</p>
     
-    <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Xóa Bài Viết</button>
-    </form>
-    <a href="{% url 'SocialMedia:manage_post_edit' post.id %}" class="btn btn-secondary">Chỉnh sửa Bài Viết</a>
-    <a href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}" class="btn btn-primary">Quay lại Trang</a>
+    <div class="post-actions">
+        {% if request.user == post.author %}
+            <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger post-delete-btn">Xóa Bài Viết</button>
+            </form>
+            <a href="{% url 'SocialMedia:manage_post_edit' post.id %}" class="btn btn-secondary post-edit-btn">Chỉnh sửa Bài Viết</a>
+        {% endif %}
+        <a href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}" class="btn btn-primary post-back-btn">Quay lại Trang</a>
+    </div>
 </div>
 {% endblock %}

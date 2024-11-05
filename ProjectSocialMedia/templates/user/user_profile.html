@@ -31,16 +31,16 @@
                     <div class="alert alert-warning">
                         Tài khoản đã bị tạm ngưng hoạt động nên không thể chỉnh sửa.
                     </div>
-                {% else %}
-                    <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Edit Profile</a>
-                {% endif %}
+                {% elif user.is_authenticated and user == profile.user %}
+                    <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Chỉnh sửa Hồ Sơ</a>
                 <div class="change_password_action" style="margin-top: 20px;">
-                    <a href="{% url 'SocialMedia:change_password' profile.id %}" class="btn btn-warning">Change Password</a>
+                    <a href="{% url 'SocialMedia:change_password' profile.id %}" class="btn btn-warning">Thay đổi Mật khẩu</a>
                 </div>
+                {% endif %}
             </div>
             {% if user.is_staff %}
                 <div class="admin_actions" style="margin-top: 20px;">
-                    <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Manage Users</a>
+                    <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Quản lý Người dùng</a>
                 </div>
             {% endif %}
         </div>
@@ -59,21 +59,22 @@
                                     <a style="color: black;" href="{% url 'SocialMedia:post_detail' post.id %}">Tên bài viết: {{ post.title }} - Ngày đăng: {{ post.created_at }}</a>  
                                 </li>
                                 {% endfor %}
-                                <a href="{% url 'SocialMedia:manage_post' page.id %}"> + Thêm bài viết</a>
                             </ul>
                         {% else %}
                             <li>Không có bài viết nào. 
                                 <a href="{% url 'SocialMedia:manage_post' page.id %}">Thêm bài viết</a>
                             </li>
                         {% endif %}
-                    <a href="{% url 'SocialMedia:manage_page' %}" class="btn btn-primary">Thêm trang</a>
                     </li>
                     {% endfor %}
+                    </li>
                 </ul>
             {% else %}
                 <p>Không có trang nào được tạo.</p>
-                <a href="{% url 'SocialMedia:manage_page' %}" class="btn btn-primary">Thêm trang</a>
             {% endif %}
+            <div class="add_page">
+                <a href="{% url 'SocialMedia:manage_page' %}" class="btn btn-success">Tạo Trang Mới</a>
+            </div>
         </div>
     </div>
 </div>

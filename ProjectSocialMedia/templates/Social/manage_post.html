@@ -1,22 +1,25 @@
 {% extends 'base.html' %}
 
+{% load static %}
+<link rel="stylesheet" href="{% static 'assets/css/style_post_form.css' %}">
+
 {% block body_block %}
-<div class="container">
-    <h1>{{ action }} Bài Viết</h1>
-    <form method="post" enctype="multipart/form-data">
+<div class="post-form-container">
+    <h1 class="post-form-title">{{ action }} Bài Viết</h1>
+    <form method="post" enctype="multipart/form-data" class="post-form">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">{{ action }}</button>
+        <button type="submit" class="btn post-submit-btn">{{ action }}</button>
     </form>
     {% if post %}
-    <hr>
-    <h2>Thông Tin Bài Viết Hiện Tại</h2>
-    <h3>Tên bài viết: {{ post.title }}</h3>
-    <p>Nội dung: {{ post.content }}</p>
+    <hr class="post-divider">
+    <h2 class="current-post-title">Thông Tin Bài Viết Hiện Tại</h2>
+    <h3 class="current-post-subtitle">Tên bài viết: {{ post.title }}</h3>
+    <p class="current-post-content">Nội dung: {{ post.content }}</p>
     {% if post.image %}
-    <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style=" margin: 0 auto; max-width: 600px; height: 400px;">
+    <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" class="current-post-image">
     {% endif %}
-    <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
+    <p class="current-post-author"><strong>Tác giả:</strong> {{ post.author.username }}</p>
     {% endif %}
 </div>
 {% endblock %}
