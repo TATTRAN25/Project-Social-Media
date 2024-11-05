@@ -2,9 +2,13 @@
 
 {% block body_block %}
 <div class="container">
-    <h1>{{ post.title }}</h1>
-    <p>{{ post.image }}</p>
-    <p>{{ post.content }}</p>
+    <h1>Tên bài viết: {{ post.title }}</h1>
+    {% if post.image %}
+        <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style="max-width: 400px; height: 400px;">
+    {% else %}
+        <p>Không có hình ảnh</p>
+    {% endif %}
+    <p>Nội dung: {{ post.content }}</p>
     <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
     
     <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">

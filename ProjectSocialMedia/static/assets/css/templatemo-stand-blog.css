@@ -391,8 +391,6 @@ header .navbar {
 	margin-top: 12px;
 }
 
-
-
 /* Blog Posts */
 
 .blog-posts {
@@ -404,8 +402,20 @@ header .navbar {
 }
 
 .blog-posts .blog-thumb img {
-	width: 100%;
-	overflow: hidden;
+    width: 100%;
+    height: auto;
+    max-width: 800px;
+    max-height: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+    margin: 10px;
+}
+
+.blog-posts .blog-thumb img.default-image {
+    max-width: 800px;
+    max-height: 400px;
+    object-fit: cover;
 }
 
 .blog-posts .down-content {
@@ -517,6 +527,36 @@ header .navbar {
 	padding: 0px;
 	width: 100%;
 	text-align: center;
+}
+
+/* Thích Bài Viết */
+
+.like-section {
+    display: flex;
+    align-items: center;
+    margin-top: 15px; /* Khoảng cách phía trên */
+}
+
+.like-section .btn-like {
+    background-color: #87ceeb; /* Nền xanh của bầu trời */
+    color: white; /* Chữ trắng */
+    border: none; /* Không viền */
+    font-size: 20px; /* Kích thước chữ */
+    cursor: pointer; /* Con trỏ khi hover */
+    transition: all 0.3s ease; /* Hiệu ứng chuyển màu */
+}
+
+.like-section .btn-like:hover {
+    background-color: #f8e231; /* Nền vàng tươi khi hover */
+    color: #333; /* Màu chữ đen khi hover */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Nhấn mạnh một tí */
+}
+
+.like-section .likes-count {
+    font-size: 16px; /* Kích thước chữ cho số lượt thích */
+    color: #20232e; /* Màu sắc chữ */
+    margin-left: 10px; /* Khoảng cách bên trái giữa nút và số lượt thích */
+    font-weight: 600; /* Đậm hơn một chút */
 }
 
 ul.page-numbers {
@@ -1226,3 +1266,121 @@ footer p a:hover {
 .page-list-btn {
     margin-right: 5px;
 }
+
+/* Nút bấm */
+.btn {
+    display: inline-block; /* Hiển thị dạng khối */
+    padding: 8px 15px; /* Khoảng cách bên trong */
+    color: #fff; /* Màu chữ */
+    text-decoration: none; /* Không gạch chân */
+    border-radius: 5px; /* Bo tròn góc */
+    transition: background-color 0.3s; /* Hiệu ứng chuyển màu */
+}
+
+/* Nút xóa */
+.btn-danger {
+    background-color: #dc3545; /* Màu nền cho nút xóa */
+}
+
+/* Hiệu ứng hover cho nút */
+.btn:hover {
+    opacity: 0.9; /* Giảm độ mờ khi hover */
+}
+
+.form-container {
+    max-width: 600px; /* Chiều rộng tối đa cho form */
+    margin: 40px auto; /* Căn giữa */
+    padding: 100px; /* Khoảng cách bên trong */
+    background-color: #f9f9f9; /* Màu nền */
+    border-radius: 8px; /* Bo tròn góc */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Đổ bóng */
+}
+
+.profile-form {
+    display: flex; /* Sử dụng flexbox để căn chỉnh */
+    flex-direction: column; /* Căn theo chiều dọc */
+}
+
+.profile-form button {
+    margin-top: 10px; /* Khoảng cách trên nút */
+}
+
+.change-password__container {
+    max-width: 50%;  /* Set maximum width */
+    margin: auto;      /* Center the container */
+    padding: 100px;
+    background-color: white; /* Set background color */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Heading style */
+.change-password__title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Error message style */
+.change-password__error-message {
+    color: red;
+    text-align: center;
+    margin: 10px 0;
+}
+
+/* Form field styles */
+.change-password__form {
+    display: flex;
+    flex-direction: column; /* Stack fields vertically */
+}
+
+/* Input field styles */
+.change-password__input {
+    width: 100%; /* Full width */
+    padding: 10px;
+    margin: 10px 0; /* Space between fields */
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 4px; /* Rounded corners */
+    transition: border 0.3s; /* Smooth transition */
+}
+
+/* Focus effect for input fields */
+.change-password__input:focus {
+    border: 1px solid #ff8c00; /* Change border color on focus */
+    outline: none; /* Remove outline */
+}
+
+/* Button styles */
+.change-password__button {
+    padding: 10px;
+    background-color: #ff8c00; /* Button color */
+    color: white;
+    border: none; /* Remove border */
+    border-radius: 4px; /* Rounded corners */
+    cursor: pointer; /* Pointer on hover */
+    transition: background 0.3s; /* Smooth background transition */
+}
+
+/* Button hover effect */
+.change-password__button:hover {
+    background-color: #45a049; /* Darker shade on hover */
+}
+
+/* Cancel button styles */
+.change-password__cancel-button {
+    display: block; /* Block display */
+    text-align: center; /* Center text */
+    margin-top: 10px; /* Space above */
+    color: #ff8c00; /* Text color */
+    text-decoration: none; /* Remove underline */
+    padding: 10px; /* Padding */
+    border: 1px solid #ff8c00; /* Border color */
+    border-radius: 4px; /* Rounded corners */
+    transition: background 0.3s, color 0.3s; /* Smooth transition */
+}
+
+/* Cancel button hover effect */
+.change-password__cancel-button:hover {
+    background-color: #ff8c00; /* Background color on hover */
+    color: white; /* Text color on hover */
+}
+

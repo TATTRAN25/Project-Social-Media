@@ -6,6 +6,7 @@ app_name = "SocialMedia"
 urlpatterns = [
     # url home page
     path('index/', views.index, name='index'),
+    path('like/<int:post_id>/', views.like_post, name='like_post'),
     path('about/', views.about, name='about'),
     path('blog/', views.blog, name='blog'),
     path('post/<int:id>/', views.post_details, name='post_details'),

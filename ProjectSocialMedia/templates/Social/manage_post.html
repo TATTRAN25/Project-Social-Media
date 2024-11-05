@@ -11,10 +11,10 @@
     {% if post %}
     <hr>
     <h2>Thông Tin Bài Viết Hiện Tại</h2>
-    <h3>{{ post.title }}</h3>
-    <p>{{ post.content }}</p>
+    <h3>Tên bài viết: {{ post.title }}</h3>
+    <p>Nội dung: {{ post.content }}</p>
     {% if post.image %}
-    <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style="max-width: 100%; height: auto;">
+    <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style=" margin: 0 auto; max-width: 600px; height: 400px;">
     {% endif %}
     <p><strong>Tác giả:</strong> {{ post.author.username }}</p>
     {% endif %}

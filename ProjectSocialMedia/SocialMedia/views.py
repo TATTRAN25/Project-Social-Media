@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import SetPasswordForm,PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -298,10 +299,39 @@ def post_detail(request, post_id):
 
     return render(request, 'Social/post_detail.html', {'post': post})
 def index(request):
-    posts = Post.objects.all()  
-    pages = Page.objects.all()  
-    return render(request, 'home/index.html', {'posts': posts, 'pages': pages})
+    posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
+    pages = Page.objects.all()
+    
+    if request.user.is_authenticated:
+        liked_posts = request.user.liked_posts.all()
+        liked_post_ids = set(post.id for post in liked_posts)
+    else:
+        liked_post_ids = set()
 
+    return render(request, 'home/index.html', {
+        'posts': posts,
+        'pages': pages,
+        'liked_post_ids': liked_post_ids,
+    })
+
+@csrf_exempt
+def like_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if request.method == "POST":
+        if post.likes.filter(id=request.user.id).exists():
+            post.likes.remove(request.user)
+            is_liked = False
+        else:
+            post.likes.add(request.user)
+            is_liked = True
+        data = {
+            'is_liked': is_liked,
+            'likes_count': post.likes.count()
+        }
+        return JsonResponse(data)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    
 def about(request):
     return render(request, 'home/about.html')
 
