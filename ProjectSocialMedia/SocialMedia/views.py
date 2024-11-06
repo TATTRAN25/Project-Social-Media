@@ -12,7 +12,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
-from .models import UserProfileInfo, PasswordResetOTP, Page, Post
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post
+from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -86,7 +87,16 @@ def profile_list(request):
 def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
     pages = Page.objects.filter(author=profile.user)
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages})
+    current_user = request.user
+
+    # Get blocked user
+    blocked_user = BlockedFriend()
+    if BlockedFriend.objects.filter(Q(blocker=current_user) | Q(blocked=current_user)):
+        blocked_user = BlockedFriend.objects.get(
+            Q(blocker=current_user) | Q(blocked=current_user)
+        )
+    
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user})
 
 @login_required
 def profile_update(request, user_id):
@@ -336,3 +346,127 @@ def post_details(request):
 
 def contact(request):
     return render(request, 'home/contact.html')
+
+# Handle friend request
+# Send friend request
+@login_required
+def send_friend_request(request, user_id):
+    to_user = get_object_or_404(User, id=user_id)
+    # Ensure a request isn't already sent
+    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+        FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+    return redirect('SocialMedia:search_friends')
+
+# Reject friend request
+@login_required
+def decline_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    friend_request.delete()
+    return redirect('SocialMedia:pending_friend_requests')
+
+# Add friend
+@login_required
+def accept_friend_request(request, request_id):
+    friend_requests = FriendRequest.objects.filter(id=request_id, to_user=request.user)
+    for friend_request in friend_requests:
+        friend_request.accepted = True
+        friend_request.save()
+
+        friend_request_reverses = FriendRequest()
+        if FriendRequest.objects.filter(from_user=request.user):
+            friend_request_reverses = FriendRequest.objects.filter(from_user=request.user)
+            for friend_request_reverse in friend_request_reverses:
+                friend_request_reverse.accepted = True
+                friend_request_reverse.save()
+
+        # Create a Friendship record
+        FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
+
+    return redirect('SocialMedia:friends_list')
+
+# Display pending friend requests for the user
+@login_required
+def pending_friend_requests(request):
+    requests = FriendRequest.objects.filter(to_user=request.user, accepted=False)
+    return render(request, 'friend/pending_requests.html', {'requests': requests})
+
+# List friend
+@login_required
+def friends_list(request):
+    # Fetch friendships where the logged-in user is either user1 or user2
+    friendships = FriendShip.objects.filter(
+        Q(user1=request.user) | Q(user2=request.user)
+    ).select_related('user1', 'user2')
+
+    # Prepare a list of friends
+    friends = []
+    for friendship in friendships:
+        # Determine which user is the friend
+        if friendship.user1 == request.user:
+            friends.append(friendship.user2)
+        else:
+            friends.append(friendship.user1)
+
+    return render(request, 'friend/friends_list.html', {'friends': friends})
+
+# Search friend
+@login_required
+def search_friends(request):
+    friend_request = FriendRequest()
+    if (FriendRequest.objects.filter(from_user=request.user).exists()):
+        friend_request = FriendRequest.objects.get(from_user=request.user)
+    friend_ship = FriendShip()
+    if (FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user)).exists()):
+        friend_ship = FriendShip.objects.get(Q(user1=request.user) | Q(user2=request.user))
+
+    query = request.GET.get('friend_name')
+    results = []
+    if query:
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
+
+    context = {
+        'results': results,
+        'friend_request':friend_request,
+        'friend_ship':friend_ship
+    }
+            
+    return render(request, 'friend/search_friends.html', context)
+
+# Delete friend
+def unfriend(request, friend_id):
+    friendship = get_object_or_404(
+        FriendShip, 
+        Q(user1=request.user, user2=friend_id) | Q(user1=friend_id, user2=request.user)
+    )
+    friendrequest = FriendRequest.objects.filter(
+        Q(from_user=request.user, to_user=friend_id) | Q(from_user=friend_id, to_user=request.user)
+    )
+    friendrequest.delete()
+    friendship.delete()
+    return redirect('SocialMedia:friends_list')
+
+# Block friend
+def blockfriend(request, friend_id):
+    # Get user to be blocked
+    user_to_block = User.objects.get(id=friend_id)
+
+    # Block user
+    if not BlockedFriend.objects.filter(blocker=request.user, blocked=user_to_block).exists():
+        BlockedFriend.objects.create(blocker=request.user, blocked=user_to_block)
+        # Unfirend blocked user
+        unfriend(request, friend_id)
+
+    return redirect("SocialMedia:friends_list")
+
+# Block list
+def block_list(request):
+    # Get blocked users
+    blocked_friends = BlockedFriend.objects.filter(blocker=request.user)
+    return render(request, 'friend/block_list.html', {'blocked_friends':blocked_friends})
+
+# Unblock
+def unblock(request, user_id):
+    # Get blocked user
+    blocked_user = BlockedFriend.objects.get(blocker=request.user, blocked=user_id)
+    blocked_user.delete()
+    return redirect("SocialMedia:block_list")

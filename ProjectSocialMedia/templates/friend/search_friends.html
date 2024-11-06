@@ -1,0 +1,119 @@
+<!-- templates/search_friends.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Friends</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+
+    form {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 300px;
+        margin-right: 10px;
+    }
+
+    button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    li {
+        background-color: white;
+        padding: 15px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-add {
+        background-color: #007bff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        color: white;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+
+    .btn-add:hover {
+        background-color: #007bff;
+    }
+
+    .no-results {
+        text-align: center;
+        color: #888;
+        padding: 15px;
+    }
+
+    a{
+        color: black;
+        text-decoration: none;
+    }
+</style>
+
+<body>
+    <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends</h1>
+    <form method="GET" action="{% url 'SocialMedia:search_friends' %}">
+        <input type="text" name="friend_name" placeholder="Search by username...">
+        <button type="submit">Search</button>
+    </form>
+
+    <ul>
+        {% for user in results %}
+            <li>
+                <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
+                {% if friend_ship.user1 == user or friend_ship.user2 == user %}
+                <span>Friend</span>
+                {% elif friend_request.from_user == user or friend_request.to_user == user %}
+                <span>Send</span>
+                {% else %}
+                <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>No results found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

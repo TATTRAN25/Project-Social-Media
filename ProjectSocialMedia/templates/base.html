@@ -32,6 +32,13 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarResponsive">
               <ul class="navbar-nav ml-auto">
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'SocialMedia:search_friends' %}">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                  </a>
+                </li>
+                {% endif %}
                 <!-- Home link -->
                 {% url 'SocialMedia:index' as index_url %}
                 <li class="nav-item {% if request.path == index_url %}active{% endif %}">
@@ -69,6 +76,11 @@
                                 User: {{ user.username }}
                             {% endif %}
                         </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'SocialMedia:pending_friend_requests' %}">
+                        <i class="fa-solid fa-bell" style="font-size: 25px;"></i>
+                      </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'SocialMedia:logout' %}">Logout</a>
@@ -136,6 +148,15 @@
           }
       }
     </script>
-
+    <script>
+          function toggleSearchBar() {
+              const searchBar = document.getElementById('search-bar');
+              if (searchBar.style.display === 'none' || searchBar.style.display === '') {
+                  searchBar.style.display = 'block';
+              } else {
+                  searchBar.style.display = 'none';
+              }
+          }
+      </script>
   </body>
 </html>

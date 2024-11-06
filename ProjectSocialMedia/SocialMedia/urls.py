@@ -18,7 +18,7 @@ urlpatterns = [
     path('user_login/', views.user_login, name='user_login'),
     # url profile user
     path('profiles/', views.profile_list, name='profile_list'),
-    path('profiles/<int:pk>/', views.user_profile, name='user_profile'), 
+    path('profiles/<int:pk>/', views.user_profile, name='user_profile'),
     path('profiles/update/<int:user_id>/', views.profile_update, name='profile_update'),
     path('profiles/delete/<int:user_id>/', views.profile_delete, name='profile_delete'),
     # url reset password with OTP
@@ -33,4 +33,15 @@ urlpatterns = [
     path('pages/<int:page_id>/posts/manage/', views.manage_post, name='manage_post'),
     path('posts/manage/<int:post_id>/', views.manage_post, name='manage_post_edit'),   
     path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
+    # url friend
+    path('friends_list/', views.friends_list, name='friends_list'),
+    path('search-friends/', views.search_friends, name='search_friends'),
+    path('send_friend_request/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
+    path('accept_friend_request/<int:request_id>/', views.accept_friend_request, name='accept_friend_request'),
+    path('decline_friend_request/<int:request_id>/', views.decline_friend_request, name='decline_friend_request'),
+    path('pending_friend_requests/', views.pending_friend_requests, name='pending_friend_requests'),
+    path('unfriend/<int:friend_id>/', views.unfriend, name='unfriend'),
+    path('friends_list/block_friend/<int:friend_id>/', views.blockfriend, name='block_friend'),
+    path('block_list/', views.block_list, name='block_list'),
+    path('block_list/unblock/<int:user_id>/', views.unblock, name='unblock')
 ]

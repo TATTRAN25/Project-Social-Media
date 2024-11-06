@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+</style>
+<div class="container mt-5">
+    <table>
+        <tr>
+            <th>Username</th>
+            <th></th>
+        </tr>
+        {% for friend in blocked_friends %}
+        <tr>
+            <td>{{ friend.blocked }}</td>
+            <td>
+                <a href="{% url 'SocialMedia:unblock' friend.blocked.id %}" class="btn btn-success">Unblock</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}
