@@ -47,3 +47,14 @@ class FriendShip(models.Model):
 
     def __str__(self):
         return f"{self.user1} is friends with {self.user2}"
+    
+class BlockedFriend(models.Model):
+    blocker = models.ForeignKey(User, related_name="blocked_by", on_delete=models.CASCADE)
+    blocked = models.ForeignKey(User, related_name="blocked_users", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blocker', 'blocked')
+
+    def __str__(self):
+        return f'{self.blocker.username} blocks {self.blocked.username}'

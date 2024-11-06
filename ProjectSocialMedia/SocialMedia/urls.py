@@ -33,4 +33,7 @@ urlpatterns = [
     path('decline_friend_request/<int:request_id>/', views.decline_friend_request, name='decline_friend_request'),
     path('pending_friend_requests/', views.pending_friend_requests, name='pending_friend_requests'),
     path('unfriend/<int:friend_id>/', views.unfriend, name='unfriend'),
+    path('friends_list/block_friend/<int:friend_id>/', views.blockfriend, name='block_friend'),
+    path('block_list/', views.block_list, name='block_list'),
+    path('block_list/unblock/<int:user_id>/', views.unblock, name='unblock')
 ]

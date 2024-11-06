@@ -2,6 +2,11 @@
 
 {% block body_block %}
 <div class="profile_container">
+    {% if blocked_user.blocker == current_user and blocked_user.blocked == profile.user %}
+    <h1>You have blocked this user</h1>
+    {% elif blocked_user.blocked == current_user and blocked_user.blocker == profile.user %}
+    <h1>You have been blocked by {{ blocked_user.blocker }}</h1>
+    {% else %}
     <div class="profile_layout">
         <div class="profile_header">
             <div class="profile_cover_photo">
@@ -46,6 +51,7 @@
             {% endif %}
             {% endif %}
             <a href="{% url 'SocialMedia:friends_list' %}" class="btn btn-primary">Friend list</a>
+            <a href="{% url 'SocialMedia:block_list' %}" class="btn btn-danger">Block list</a>
         </div>
     </div>
     {% if not profile %}
@@ -54,6 +60,7 @@
         <div class="profile_actions">
             <a href="{% url 'SocialMedia:profile_create' %}" class="btn btn-primary">Add Profile</a>
         </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

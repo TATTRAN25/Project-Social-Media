@@ -18,12 +18,11 @@
             <th>Username</th>
             <th></th>
         </tr>
-        {% for friend in friends %}
+        {% for friend in blocked_friends %}
         <tr>
-            <td>{{ friend }}</td>
+            <td>{{ friend.blocked }}</td>
             <td>
-                <a href="{% url 'SocialMedia:unfriend' friend.id %}" class="btn btn-danger">Unfriend</a>
-                <a href="{% url 'SocialMedia:block_friend' friend.id %}" class="btn btn-danger">Block</a>
+                <a href="{% url 'SocialMedia:unblock' friend.blocked.id %}" class="btn btn-success">Unblock</a>
             </td>
         </tr>
         {% endfor %}

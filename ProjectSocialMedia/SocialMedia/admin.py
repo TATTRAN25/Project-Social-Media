@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfileInfo, FriendRequest, FriendShip
+from .models import UserProfileInfo, FriendRequest, FriendShip,  BlockedFriend
 
 # Register your models here.
 @admin.register(UserProfileInfo)
@@ -16,3 +16,8 @@ class FriendRequestAdmin(admin.ModelAdmin):
 class FriendshipAdmin(admin.ModelAdmin):
     list_display = ('user1', 'user2', 'created_at')
     search_fields = ('user1__username', 'user2__username')
+
+@admin.register(BlockedFriend)
+class BlockFriendAdmin(admin.ModelAdmin):
+    list_display = ('blocker', 'blocked', 'created_at')
+    search_fields = ('blocker', 'blocked')
