@@ -25,9 +25,9 @@ urlpatterns = [
     path('send_otp/', views.send_otp, name='send_otp'),
     path('verify_otp/', views.verify_otp, name='verify_otp'),
     path('reset_password/<int:user_id>/', views.reset_password, name='reset_password'),
-    path('change_password/<int:user_id>/', views.change_password, name='change_password'),
+    path('change_password/', views.change_password, name='change_password'),
     # url Pages
-    path('pages/', views.page_list, name='page_list'),
+    path('pages/<int:page_id>/', views.page_detail, name='page_detail'),
     path('pages/manage/', views.manage_page, name='manage_page'), 
     path('pages/manage/<int:page_id>/', views.manage_page, name='manage_page'), 
     path('pages/<int:page_id>/posts/manage/', views.manage_post, name='manage_post'),

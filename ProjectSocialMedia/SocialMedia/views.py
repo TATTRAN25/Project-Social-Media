@@ -170,19 +170,18 @@ def reset_password(request, user_id):
 
     return render(request, 'user/reset_password.html', {'form': form})
 
-# Thay đổi mật khẩu@login_required
+# Thay đổi mật khẩu
 @login_required
-def change_password(request, user_id):
-    profile = get_object_or_404(UserProfileInfo, id=user_id)
-    user = profile.user  
+def change_password(request):
+    user = request.user  # Lấy người dùng hiện tại
 
     if request.method == 'POST':
         form = PasswordChangeForm(user, request.POST) 
         if form.is_valid():
             user = form.save()
-            update_session_auth_hash(request, user)  
+            update_session_auth_hash(request, user)  # Cập nhật phiên người dùng
             messages.success(request, 'Mật khẩu đã được thay đổi thành công.')
-            return redirect('SocialMedia:user_profile', pk=profile.pk)  
+            return redirect('SocialMedia:user_profile', pk=user.id)  # Chuyển hướng đến trang hồ sơ người dùng
     else:
         form = PasswordChangeForm(user)  
 
@@ -200,21 +199,20 @@ def manage_page(request, page_id=None):
         page = None
         form = PageForm(request.POST or None)
 
-    if form.is_valid():
+    if request.method == 'POST' and form.is_valid():
         page = form.save(commit=False)
         page.author = request.user
         page.save()
         if page_id:
             messages.success(request, 'Trang đã được cập nhật thành công!')
-            return redirect('SocialMedia:page_list')
         else:
             messages.success(request, 'Trang đã được tạo thành công!')
-            return redirect('SocialMedia:page_list')
+        return redirect('SocialMedia:page_detail', page_id=page.id)  
 
     return render(request, 'Social/manage_page.html', {'form': form, 'page': page})
 
 @login_required
-def page_list(request):
+def page_detail(request, page_id):
     # Kiểm tra trạng thái của người dùng
     if request.user.userprofileinfo.status == 'inactive':
         messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xem bài viết.')
@@ -225,19 +223,17 @@ def page_list(request):
         page_id = request.POST['delete_page_id']
         page = get_object_or_404(Page, id=page_id)
         if page.author == request.user or request.user.is_staff:
+            page.posts.all().delete()
             page.delete()
-            messages.success(request, 'Trang đã được xóa thành công!')
+            messages.success(request, 'Trang và các bài viết đã được xóa thành công!')
         else:
             messages.error(request, 'Bạn không có quyền xóa trang này.')
-        return redirect('SocialMedia:page_list')
+        return redirect('SocialMedia:index')  
+    # Lấy trang theo page_id
+    page = get_object_or_404(Page, id=page_id)
+    posts = page.posts.all()  
 
-    # Lấy danh sách trang dựa trên quyền truy cập
-    if request.user.is_staff:
-        pages = Page.objects.all() 
-    else:
-        pages = Page.objects.filter(author=request.user)  
-
-    return render(request, 'Social/page_list.html', {'pages': pages})
+    return render(request, 'Social/page_detail.html', {'page': page, 'posts': posts})
 
 # Crud Post
 @login_required
@@ -290,7 +286,7 @@ def post_detail(request, post_id):
         if request.user == post.author or request.user.is_staff:
             post.delete()
             messages.success(request, 'Bài viết đã được xóa thành công!')
-            return redirect('SocialMedia:page_list')
+            return redirect('SocialMedia:page_detail')
         else:
             messages.error(request, 'Bạn không có quyền xóa bài viết này.')
 

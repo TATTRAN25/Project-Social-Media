@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 
 {% block body_block %}
-    <form method="post">
+<div class="custom-form-container">
+    <h1 class="custom-form-title">{% if page %}Cập nhật Trang{% else %}Tạo Trang Mới{% endif %}</h1>
+    <form method="post" class="custom-form">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="manage-btn manage-submit-btn">
             {% if page %}Cập nhật{% else %}Tạo mới{% endif %}
         </button>
     </form>
+</div>
 {% endblock %}

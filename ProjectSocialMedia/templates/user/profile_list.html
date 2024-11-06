@@ -21,7 +21,7 @@
         <tbody>
             {% for profile in profiles %}
             <tr>
-                <td>{{ profile.user.username }}</td>
+                <td><a href="{% url 'SocialMedia:user_profile' profile.user.id %}">{{ profile.user.username }}</a></td>
                 <td>{{ profile.user.email }}</td>
                 <td>{{ profile.address }}</td>  
                 <td>{{ profile.bio }}</td>        

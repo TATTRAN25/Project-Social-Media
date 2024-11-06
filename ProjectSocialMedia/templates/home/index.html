@@ -71,6 +71,7 @@
                                           <li><a href="#">{{ post.created_at|date:"F j, Y" }}</a></li>
                                           <li><a href="#">{{ post.comments.count }} Comments</a></li>
                                       </ul>
+                                      <p>{{ post.content|truncatewords:20 }}</p>
                                       <div class="blog-thumb">
                                           {% if post.image %}
                                           <img src="{{ post.image.url }}" alt="">
@@ -78,7 +79,6 @@
                                           <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
                                           {% endif %}
                                       </div>
-                                      <p>{{ post.content|truncatewords:20 }}</p>
                                       <div class="post-options">
                                           <div class="row">
                                               <div class="col-6">

@@ -34,7 +34,7 @@
                 {% elif user.is_authenticated and user == profile.user %}
                     <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Chỉnh sửa Hồ Sơ</a>
                 <div class="change_password_action" style="margin-top: 20px;">
-                    <a href="{% url 'SocialMedia:change_password' profile.id %}" class="btn btn-warning">Thay đổi Mật khẩu</a>
+                    <a href="{% url 'SocialMedia:change_password' %}" class="btn btn-warning">Thay đổi Mật khẩu</a>
                 </div>
                 {% endif %}
             </div>
@@ -51,7 +51,7 @@
                 <ul>
                     {% for page in pages %}
                     <li>
-                        <a href="{% url 'SocialMedia:page_list' %}?page_id={{ page.id }}">{{ page.title }}</a> 
+                        <a href="{% url 'SocialMedia:page_detail' page.id %}">{{ page.title }}</a>
                         {% if page.posts.all %}
                             <ul>
                                 {% for post in page.posts.all %}

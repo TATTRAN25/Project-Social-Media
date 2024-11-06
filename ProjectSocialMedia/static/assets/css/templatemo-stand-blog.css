@@ -1587,3 +1587,159 @@ footer p a:hover {
     font-weight: bold;
     margin-top: 10px;
 }
+
+/* page_detail */
+.custom-page-detail-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.custom-title {
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: #333;
+    text-align: center;
+}
+
+.custom-content, .custom-date, .custom-author {
+    font-size: 1.2em;
+    margin: 10px 0;
+    color: #555;
+    text-align: center;
+}
+
+.custom-page-actions {
+    margin: 20px 0;
+    display: flex;               
+    justify-content: center;     
+    gap: 15px;                  
+}
+
+.custom-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-edit-btn {
+    background-color: #007bff; /* Blue */
+}
+
+.custom-edit-btn:hover {
+    background-color: #0056b3; /* Darker Blue */
+}
+
+.custom-delete-btn {
+    background-color: #dc3545; /* Red */
+}
+
+.custom-delete-btn:hover {
+    background-color: #c82333; /* Darker Red */
+}
+
+.custom-add-post-btn {
+    background-color: #28a745; /* Green */
+}
+
+.custom-add-post-btn:hover {
+    background-color: #218838; /* Darker Green */
+}
+
+.custom-posts-title {
+    font-size: 1.5em;
+    margin-top: 30px;
+    color: #333;
+    text-align: center;
+}
+
+.custom-post-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.custom-post-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.custom-post-image {
+    margin-bottom: 10px;
+}
+
+.custom-post-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.custom-post-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.custom-post-link:hover {
+    text-decoration: underline;
+}
+
+.custom-post-content, .custom-post-date {
+    font-size: 1em;
+    color: #666;
+}
+
+.custom-add-post-btn {
+    margin-top: 20px;
+    background-color: #28a745; /* Green */
+}
+
+.custom-add-post-btn:hover {
+    background-color: #218838; /* Darker Green */
+}
+
+/* manage_page */
+.custom-form-container {
+    max-width: 600px;             /* Chiều rộng tối đa của container */
+    margin: 50px auto;            /* Căn giữa container */
+    padding: 20px;                /* Padding cho container */
+    background-color: #f9f9f9;    /* Màu nền */
+    border-radius: 8px;           /* Bo góc */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Đổ bóng */
+}
+
+.custom-form-title {
+    font-size: 1.8em;             /* Kích thước chữ tiêu đề */
+    margin-bottom: 20px;          /* Khoảng cách dưới tiêu đề */
+    color: #333;                  /* Màu chữ */
+    text-align: center;           /* Căn giữa tiêu đề */
+}
+
+.custom-form {
+    display: flex;                /* Sử dụng Flexbox */
+    flex-direction: column;       /* Sắp xếp theo cột */
+    gap: 15px;                   /* Khoảng cách giữa các phần tử */
+}
+
+.manage-btn {
+    padding: 10px 15px;          /* Padding cho nút */
+    border: none;                 /* Không có viền */
+    border-radius: 5px;          /* Bo góc cho nút */
+    color: #fff;                  /* Màu chữ */
+    background-color: #007bff;   /* Màu nền nút */
+    cursor: pointer;              /* Con trỏ khi hover */
+    transition: background-color 0.3s ease; /* Hiệu ứng chuyển màu */
+}
+
+.manage-btn:hover {
+    background-color: #0056b3;    /* Màu nền khi hover */
+}

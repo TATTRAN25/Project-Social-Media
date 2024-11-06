@@ -33,8 +33,21 @@ class UserProfileInfoForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        if not self.user.is_staff:
-            self.fields.pop('status', None)
+        # Nếu người dùng là admin
+        if self.user.is_staff:
+            # Admin có thể chỉnh sửa thông tin của chính mình và status
+            if self.instance.user == self.user:
+                # Admin chỉnh sửa thông tin của chính mình
+                pass  # Thực hiện không làm gì, giữ nguyên tất cả các trường
+            else:
+                # Admin chỉnh sửa thông tin của người khác, chỉ cho phép status
+                self.fields['status'].required = True  # Bắt buộc trường status
+                for field in self.fields:
+                    if field != 'status':
+                        self.fields[field].disabled = True  # Vô hiệu hóa các trường khác
+        else:
+            # Người dùng bình thường không được phép chỉnh sửa status
+            self.fields.pop('status', None)  # Loại bỏ trường status
 
 class PageForm(forms.ModelForm):
     class Meta:

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="custom-page-detail-container">
+    <h1 class="custom-title">{{ page.title }}</h1>
+    <p class="custom-content"><strong>Nội Dung:</strong> {{ page.content }}</p>
+    <p class="custom-date"><strong>Ngày Tạo:</strong> {{ page.created_at|date:"d/m/Y H:i" }}</p>
+    <p class="custom-author"><strong>Tác Giả:</strong> {{ page.author.username }}</p>
+
+    <div class="custom-page-actions">
+        {% if page.author == user %}
+        <a href="{% url 'SocialMedia:manage_page' page.id %}" class="custom-btn custom-edit-btn">
+            <i class="fas fa-edit"></i> Chỉnh sửa
+        </a>
+        {% endif %}
+        {% if user.is_staff or page.author == user %}
+            <form action="{% url 'SocialMedia:page_detail' page.id %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="delete_page_id" value="{{ page.id }}">
+                <button type="submit" class="custom-btn custom-delete-btn" onclick="return confirm('Bạn có chắc chắn muốn xóa trang này không?');">
+                    <i class="fas fa-trash-alt"></i> Xóa
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    <h2 class="custom-posts-title">Các Bài Viết:</h2>
+    {% if posts %}
+        <ul class="custom-post-list">
+            {% for post in posts %}
+                <li class="custom-post-item">
+                    
+                    <h3><a href="{% url 'SocialMedia:post_detail' post.id %}" class="custom-post-link">{{ post.title }}</a></h3>
+                    <div class="custom-post-image">
+                        <img src="{{ post.image.url|default:'assets/images/default-image.jpg' }}" alt="{{ post.title }}" />
+                    </div>
+                    <p class="custom-post-content">Nội dung: {{ post.content }}</p>
+                    <p class="custom-post-date"><strong>Ngày Đăng:</strong> {{ post.created_at|date:"d/m/Y H:i" }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Không có bài viết nào cho trang này.</p>
+    {% endif %}
+
+    {% if user == page.author %}
+        <a href="{% url 'SocialMedia:manage_post' page.id %}" class="custom-btn custom-add-post-btn">
+            <i class="fas fa-plus"></i> Đăng Bài Viết Mới
+        </a>
+    {% endif %}
+</div>
+{% endblock %}
