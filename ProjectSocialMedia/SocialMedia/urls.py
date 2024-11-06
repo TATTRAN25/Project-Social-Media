@@ -6,7 +6,6 @@ app_name = "SocialMedia"
 urlpatterns = [
     # url home page
     path('index/', views.index, name='index'),
-    path('like/<int:post_id>/', views.like_post, name='like_post'),
     path('about/', views.about, name='about'),
     path('blog/', views.blog, name='blog'),
     path('post/<int:id>/', views.post_details, name='post_details'),
@@ -26,7 +25,11 @@ urlpatterns = [
     path('verify_otp/', views.verify_otp, name='verify_otp'),
     path('reset_password/<int:user_id>/', views.reset_password, name='reset_password'),
     path('change_password/', views.change_password, name='change_password'),
-    # url Pages
+    # url Social Page,Post
+    path('likes/', views.like_list, name='like_list'),
+    path('like/<int:post_id>/', views.like_post, name='like_post'),
+    path('post/<int:post_id>/react/', views.react_to_post, name='react_to_post'),
+    path('page/<int:page_id>/like/', views.like_page, name='like_page'),
     path('pages/<int:page_id>/', views.page_detail, name='page_detail'),
     path('pages/manage/', views.manage_page, name='manage_page'), 
     path('pages/manage/<int:page_id>/', views.manage_page, name='manage_page'), 

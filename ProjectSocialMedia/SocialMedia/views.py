@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post,Reaction
 from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
@@ -300,7 +300,21 @@ def post_detail(request, post_id):
         else:
             messages.error(request, 'Bạn không có quyền xóa bài viết này.')
 
-    return render(request, 'Social/post_detail.html', {'post': post})
+    # Trả về số lượng phản ứng khi cần
+    reactions_count = {
+        'like': post.reaction_set.filter(reaction_type='like').count(),
+        'love': post.reaction_set.filter(reaction_type='love').count(),
+        'sad': post.reaction_set.filter(reaction_type='sad').count(),
+        'angry': post.reaction_set.filter(reaction_type='angry').count(),
+        'wow': post.reaction_set.filter(reaction_type='wow').count(),
+    }
+
+    context = {
+        'post': post,
+        'reactions_count': reactions_count,
+    }
+    return render(request, 'Social/post_detail.html', context)
+
 def index(request):
     posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
     pages = Page.objects.all()
@@ -334,7 +348,66 @@ def like_post(request, post_id):
         return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+@login_required
+def like_page(request, page_id):
+    page = get_object_or_404(Page, id=page_id)
+
+    if request.user in page.likes.all():
+        # Nếu người dùng đã "like" rồi, bỏ "like"
+        page.likes.remove(request.user)
+    else:
+        # Nếu chưa "like", thêm vào danh sách "liked"
+        page.likes.add(request.user)
+
+    return redirect('SocialMedia:page_detail', page_id=page.id)
     
+@login_required
+def like_list(request):
+    # Lấy danh sách các trang mà người dùng đã like
+    liked_pages = Page.objects.filter(likes=request.user)
+
+    # Lấy danh sách các bài viết mà người dùng đã like
+    liked_posts = Post.objects.filter(likes=request.user)
+    context = {
+        'liked_pages': liked_pages,
+        'liked_posts': liked_posts,
+    }
+    return render(request, 'Social/like_list.html', context)
+
+@login_required
+def react_to_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    
+    reaction_type = request.POST.get('reaction_type')
+    # Kiểm tra xem người dùng đã phản ứng hay chưa
+    existing_reaction = post.reaction_set.filter(user=request.user).first()
+
+    if existing_reaction:
+        if existing_reaction.reaction_type == reaction_type:
+            # Nếu đã phản ứng với loại này, xóa phản ứng
+            existing_reaction.delete()
+            created = False
+        else:
+            # Nếu phản ứng khác, cập nhật loại phản ứng
+            existing_reaction.reaction_type = reaction_type
+            existing_reaction.save()
+            created = True
+    else:
+        # Tạo phản ứng mới
+        reaction = Reaction.objects.create(user=request.user, post=post, reaction_type=reaction_type)
+        created = True
+
+    # Tính toán số lượng phản ứng mới
+    reactions_count = {
+        'like': post.reaction_set.filter(reaction_type='like').count(),
+        'love': post.reaction_set.filter(reaction_type='love').count(),
+        'sad': post.reaction_set.filter(reaction_type='sad').count(),
+        'angry': post.reaction_set.filter(reaction_type='angry').count(),
+        'wow': post.reaction_set.filter(reaction_type='wow').count(),
+    }
+
+    return JsonResponse({'success': True, 'reactions_count': reactions_count, 'created': created})
+
 def about(request):
     return render(request, 'home/about.html')
 

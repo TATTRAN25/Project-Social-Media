@@ -35,7 +35,7 @@ class Page(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    like_pages = models.ManyToManyField(User, related_name='liked_pages', blank=True)  #
+    likes = models.ManyToManyField(User, related_name='liked_pages', blank=True)  #
 
     def __str__(self):
         return self.title
@@ -53,6 +53,21 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+class Reaction(models.Model):
+    REACTION_CHOICES = [
+        ('like', 'Thích'),
+        ('love', 'Yêu'),
+        ('sad', 'Buồn'),
+        ('angry', 'Giận dữ'),
+        ('wow', 'Wow'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+
+    class Meta:
+        unique_together = ('user', 'post') 
+
 class PageAuthorization(models.Model):
     page = models.ForeignKey(Page, related_name='authorizations', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -61,8 +76,6 @@ class PageAuthorization(models.Model):
 
     class Meta:
         unique_together = ('page', 'user')
-
-
 
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
