@@ -30,9 +30,9 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             padding: 20px;
             width: 300px;
+            text-align: center;
         }
         h2 {
-            text-align: center;
             color: #333;
             margin-bottom: 20px;
         }
@@ -61,6 +61,16 @@
         button:hover {
             background-color: #45a049;
         }
+        #timer {
+            margin-top: 10px;
+            font-size: 16px;
+            color: red;
+        }
+        #expired-message {
+            display: none;
+            margin-top: 10px;
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -72,7 +82,27 @@
             <input type="text" name="otp" placeholder="Enter your OTP" required>
             <button type="submit">Verify OTP</button>
         </form>
+        <div id="timer">5:00</div>
+        <div id="expired-message">OTP đã hết hạn. Vui lòng quay lại trang nhập OTP.</div>
     </div>
+
+    <script>
+        let timeLeft = 300; // 5 phút = 300 giây
+        const timerElement = document.getElementById('timer');
+        const expiredMessage = document.getElementById('expired-message');
+
+        const countdown = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                expiredMessage.style.display = 'block';
+                timerElement.style.display = 'none';
+            } else {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeLeft--;
+            }
+        }, 1000);
+    </script>
 </body>
 </html>
-

@@ -50,9 +50,19 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
+
     def __str__(self):
         return self.title
 
+class Share(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} shared {self.post.title}"
+    
 class Reaction(models.Model):
     REACTION_CHOICES = [
         ('like', 'Thích'),

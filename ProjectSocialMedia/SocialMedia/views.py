@@ -1,20 +1,21 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import SetPasswordForm,PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db.models import Q
 from django.db.models.signals import post_save
+from django.views.decorators.csrf import csrf_exempt
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post,Reaction
-from django.db.models import Q
+import json
 
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, ShareForm
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Reaction, Share
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -88,7 +89,7 @@ def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
     pages = Page.objects.filter(author=profile.user)
     current_user = request.user
-
+    shared_posts = Share.objects.filter(user=profile.user).select_related('post')
     # Get blocked user
     blocked_user = BlockedFriend()
     if BlockedFriend.objects.filter(Q(blocker=current_user) | Q(blocked=current_user)):
@@ -96,7 +97,7 @@ def user_profile(request, pk):
             Q(blocker=current_user) | Q(blocked=current_user)
         )
     
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user})
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'shared_posts': shared_posts})
 
 @login_required
 def profile_update(request, user_id):
@@ -318,7 +319,8 @@ def post_detail(request, post_id):
 def index(request):
     posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
     pages = Page.objects.all()
-    
+    shared_posts = Share.objects.select_related('post').all() 
+
     if request.user.is_authenticated:
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
@@ -329,6 +331,7 @@ def index(request):
         'posts': posts,
         'pages': pages,
         'liked_post_ids': liked_post_ids,
+        'shared_posts': shared_posts,
     })
 
 @csrf_exempt
@@ -407,6 +410,34 @@ def react_to_post(request, post_id):
     }
 
     return JsonResponse({'success': True, 'reactions_count': reactions_count, 'created': created})
+
+@login_required
+def share_post(request, share_id=None, post_id=None):
+    post = get_object_or_404(Post, id=post_id) if post_id else None
+
+    if share_id:
+        share = get_object_or_404(Share, id=share_id)
+        form = ShareForm(request.POST or None, instance=share)
+    else:
+        share = None
+        form = ShareForm(request.POST or None)
+
+    if request.method == 'POST':
+        if 'delete' in request.POST and share:
+            share.delete()  
+            return redirect('SocialMedia:user_profile', pk=request.user.id)  
+        elif form.is_valid():
+            new_share = form.save(commit=False)
+            new_share.user = request.user  
+            new_share.post = post  
+            new_share.save()  
+            return redirect('SocialMedia:user_profile', pk=request.user.id)  
+
+    return render(request, 'Social/share_post.html', {
+        'form': form,
+        'share': share,
+        'post': post, 
+    })
 
 def about(request):
     return render(request, 'home/about.html')

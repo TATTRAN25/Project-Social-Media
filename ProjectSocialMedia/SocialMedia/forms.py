@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import UserProfileInfo, Page, Post
+from .models import UserProfileInfo, Page, Post, Share
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, help_text='Mật khẩu phải có ít nhất 8 ký tự.')
@@ -72,4 +72,16 @@ class PostForm(forms.ModelForm):
             'title': 'Tiêu đề',
             'content': 'Nội dung',
              'image' : 'Hình ảnh',
+        }
+
+class ShareForm(forms.ModelForm):
+    class Meta:
+        model = Share
+        fields = ['comment']  
+        widgets = {
+            'comment': forms.Textarea(attrs={
+                'placeholder': 'Nhập bình luận...',
+                'rows': 3,
+                'class': 'form-control'
+            }),
         }

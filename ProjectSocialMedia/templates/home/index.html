@@ -67,7 +67,7 @@
                                           <h4>{{ post.title }}</h4>
                                       </a>
                                       <ul class="post-info">
-                                          <li><a href="#">{{ post.author.username }}</a></li>
+                                          <li><a href="{% url 'SocialMedia:user_profile' post.author.id %}">{{ post.author.username }}</a></li>
                                           <li><a href="#">{{ post.created_at|date:"F j, Y" }}</a></li>
                                           <li><a href="#">{{ post.page.likes.count }} Likes</a></li>
                                           <li><a href="#">{{ post.comments.count }} Comments</a></li>
@@ -81,21 +81,20 @@
                                           {% endif %}
                                       </div>
                                       <div class="post-options">
-                                          <div class="row">
-                                              <div class="col-6">
-                                                  <ul class="post-tags">
-                                                      <li><i class="fa fa-tags"></i></li>
-                                                      <li><a href="#">{{ post.tags.all|join:", " }}</a></li>
-                                                  </ul>
-                                              </div>
-                                              <div class="col-6">
-                                                  <ul class="post-share">
-                                                      <li><i class="fa fa-share-alt"></i></li>
-                                                      <li><a href="#">Facebook</a>,</li>
-                                                      <li><a href="#">Twitter</a></li>
-                                                  </ul>
-                                              </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <ul class="post-tags">
+                                                    <li><i class="fa fa-tags"></i></li>
+                                                    <li><a href="#">{{ post.tags.all|join:", " }}</a></li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-6">
+                                              <ul class="post-share">
+                                                  <li><i class="fa fa-share-alt"></i></li>
+                                                  <li><a href="{% url 'SocialMedia:new_share' post.id %}">Chia sẻ bài viết</a></li>
+                                              </ul>
                                           </div>
+                                        </div>
                                       </div>
                                       <div class="like-section">
                                         <button type="button" class="btn btn-like" data-post-id="{{ post.id }}">
@@ -106,6 +105,57 @@
                                             {% endif %}
                                         </button>
                                         <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
+                                      </div>
+                                  </div>
+                              </div>
+                              {% endfor %}
+                              <h2>Bài Viết Được Chia Sẻ</h2>
+                              {% for share in shared_posts %}
+                              <div class="blog-post">
+                                  <div class="down-content">
+                                      <span>{{ share.user.username }} đã chia sẻ Bài viết</span>
+                                      <span><a href="{% url 'SocialMedia:page_detail' share.post.page.id %}">{{ share.post.page.title }}</a></span>
+                                      <a href="{% url 'SocialMedia:post_detail' share.post.id %}">
+                                          <h4>{{ share.post.title }}</h4>
+                                      </a>
+                                      <ul class="post-info">
+                                          <li><a href="#">{{ share.created_at|date:"F j, Y" }}</a></li>
+                                          <li><a href="#">{{ share.post.likes.count }} Likes</a></li>
+                                          <li><a href="#">{{ share.post.comments.count }} Comments</a></li>
+                                      </ul>
+                                      <p>{{ share.comment|default:"" }}</p>
+                                      <div class="blog-thumb">
+                                          {% if share.post.image %}
+                                          <img src="{{ share.post.image.url }}" alt="">
+                                          {% else %}
+                                          <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
+                                          {% endif %}
+                                      </div>
+                                      <div class="post-options">
+                                          <div class="row">
+                                              <div class="col-6">
+                                                  <ul class="post-tags">
+                                                      <li><i class="fa fa-tags"></i></li>
+                                                      <li><a href="#">{{ share.post.tags.all|join:", " }}</a></li>
+                                                  </ul>
+                                              </div>
+                                              <div class="col-6">
+                                                  <ul class="post-share">
+                                                      <li><i class="fa fa-share-alt"></i></li>
+                                                      <li>Chia sẻ bài viết</li>
+                                                  </ul>
+                                              </div>
+                                          </div>
+                                      </div>
+                                      <div class="like-section">
+                                          <button type="button" class="btn btn-like" data-post-id="{{ share.post.id }}">
+                                              {% if share.post.id in liked_post_ids %}
+                                                  👍🏻 Bỏ Like
+                                              {% else %}
+                                                  👍 Like
+                                              {% endif %}
+                                          </button>
+                                          <span class="likes-count" id="like-count-{{ share.post.id }}">{{ share.post.likes.count }} lượt Like</span>
                                       </div>
                                   </div>
                               </div>
@@ -198,40 +248,40 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-    const likeButtons = document.querySelectorAll('.btn-like');
+        const likeButtons = document.querySelectorAll('.btn-like');
 
-    likeButtons.forEach(button => {
-        button.addEventListener('click', function () {
+        likeButtons.forEach(button => {
+          button.addEventListener('click', function () {
             const postId = button.getAttribute('data-post-id');
             const url = `/SocialMedia/like/${postId}/`;
 
             fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ post_id: postId })
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ post_id: postId })
             })
-            .then(response => {
+              .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                  throw new Error('Network response was not ok');
                 }
                 return response.json();
-            })
-            .then(data => {
+              })
+              .then(data => {
                 // Cập nhật nút thích và số lượng lượt thích
-                button.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
+                button.textContent = data.is_liked ? 'Bỏ Like' : 'Like';
                 const likeCountSpan = document.getElementById(`like-count-${postId}`);
                 likeCountSpan.textContent = `${data.likes_count} lượt thích`;
-            })
-            .catch(error => {
+              })
+              .catch(error => {
                 console.error('Error:', error);
                 alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
-            });
+              });
+          });
         });
-    });
-});
+      });
 
   </script>
 {% endblock %}
