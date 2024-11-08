@@ -64,7 +64,7 @@ class PageForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image'] 
+        fields = ['title', 'content', 'image', 'view_mode'] 
         widgets = {
             'content': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Nội dung bài viết...'}),
         }
@@ -72,6 +72,7 @@ class PostForm(forms.ModelForm):
             'title': 'Tiêu đề',
             'content': 'Nội dung',
              'image' : 'Hình ảnh',
+            'view_mode': 'Chế độ xem',
         }
 
 class ShareForm(forms.ModelForm):

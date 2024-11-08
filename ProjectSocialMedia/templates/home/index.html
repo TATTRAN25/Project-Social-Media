@@ -69,7 +69,7 @@
                                       <ul class="post-info">
                                           <li><a href="{% url 'SocialMedia:user_profile' post.author.id %}">{{ post.author.username }}</a></li>
                                           <li><a href="#">{{ post.created_at|date:"F j, Y" }}</a></li>
-                                          <li><a href="#">{{ post.page.likes.count }} Likes</a></li>
+                                          <li><a href="#">{{ post.likes.count }} Likes</a></li>
                                           <li><a href="#">{{ post.comments.count }} Comments</a></li>
                                       </ul>
                                       <p>{{ post.content|truncatewords:20 }}</p>
@@ -81,30 +81,38 @@
                                           {% endif %}
                                       </div>
                                       <div class="post-options">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <ul class="post-tags">
-                                                    <li><i class="fa fa-tags"></i></li>
-                                                    <li><a href="#">{{ post.tags.all|join:", " }}</a></li>
-                                                </ul>
-                                            </div>
-                                            <div class="col-6">
-                                              <ul class="post-share">
-                                                  <li><i class="fa fa-share-alt"></i></li>
-                                                  <li><a href="{% url 'SocialMedia:new_share' post.id %}">Chia sẻ bài viết</a></li>
-                                              </ul>
+                                          <div class="row">
+                                              <div class="col-6">
+                                                  <ul class="post-tags">
+                                                      <li><i class="fa fa-tags"></i></li>
+                                                      <li><a href="#">{{ post.tags.all|join:", " }}</a></li>
+                                                  </ul>
+                                              </div>
+                                              <div class="col-6">
+                                                  <ul class="post-share">
+                                                      <li><i class="fa fa-share-alt"></i></li>
+                                                      {% if request.user.is_authenticated %}
+                                                      <li>
+                                                          <a href="{% url 'SocialMedia:new_share' post.id %}?next={% url 'SocialMedia:user_profile' request.user.id %}">Chia sẻ bài viết</a>
+                                                      </li>
+                                                      {% else %}
+                                                      <li>
+                                                          <a href="{% url 'SocialMedia:login' %}">Đăng nhập để chia sẻ</a>
+                                                      </li>
+                                                      {% endif %}
+                                                  </ul>
+                                              </div>
                                           </div>
-                                        </div>
                                       </div>
                                       <div class="like-section">
-                                        <button type="button" class="btn btn-like" data-post-id="{{ post.id }}">
-                                            {% if post.id in liked_post_ids %}
+                                          <button type="button" class="btn btn-like" data-post-id="{{ post.id }}">
+                                              {% if post.id in liked_post_ids %}
                                               👍🏻 Bỏ Like
-                                            {% else %}
+                                              {% else %}
                                               👍 Like
-                                            {% endif %}
-                                        </button>
-                                        <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
+                                              {% endif %}
+                                          </button>
+                                          <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
                                       </div>
                                   </div>
                               </div>
@@ -113,7 +121,7 @@
                               {% for share in shared_posts %}
                               <div class="blog-post">
                                   <div class="down-content">
-                                      <span>{{ share.user.username }} đã chia sẻ Bài viết</span>
+                                      <span>{{ share.user.username }} đã chia sẻ bài viết của trang</span>
                                       <span><a href="{% url 'SocialMedia:page_detail' share.post.page.id %}">{{ share.post.page.title }}</a></span>
                                       <a href="{% url 'SocialMedia:post_detail' share.post.id %}">
                                           <h4>{{ share.post.title }}</h4>
@@ -125,10 +133,14 @@
                                       </ul>
                                       <p>{{ share.comment|default:"" }}</p>
                                       <div class="blog-thumb">
-                                          {% if share.post.image %}
-                                          <img src="{{ share.post.image.url }}" alt="">
+                                          {% if share.post.view_mode == 'private' or share.post.view_mode == 'only_me' %}
+                                              <p><strong>Nội dung đã được chỉnh chế độ riêng tư.</strong></p>
                                           {% else %}
-                                          <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
+                                              {% if share.post.image %}
+                                                  <img src="{{ share.post.image.url }}" alt="">
+                                              {% else %}
+                                                  <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
+                                              {% endif %}
                                           {% endif %}
                                       </div>
                                       <div class="post-options">
@@ -182,22 +194,16 @@
                     <div class="col-lg-12">
                       <div class="sidebar-item recent-posts">
                         <div class="sidebar-heading">
-                          <h2>Recent Posts</h2>
+                          <h2>Bài Viết Gần Đây</h2>
                         </div>
                         <div class="content">
                           <ul>
-                            <li><a href="post-details.html">
-                              <h5>Vestibulum id turpis porttitor sapien facilisis scelerisque</h5>
-                              <span>May 31, 2020</span>
+                            {% for recent_post in posts|slice:":5" %}
+                            <li><a href="{% url 'SocialMedia:post_detail' recent_post.id %}">
+                              <h5>{{ recent_post.title }}</h5>
+                              <span>{{ recent_post.created_at|date:"F j, Y" }}</span>
                             </a></li>
-                            <li><a href="post-details.html">
-                              <h5>Suspendisse et metus nec libero ultrices varius eget in risus</h5>
-                              <span>May 28, 2020</span>
-                            </a></li>
-                            <li><a href="post-details.html">
-                              <h5>Swag hella echo park leggings, shaman cornhole ethical coloring</h5>
-                              <span>May 14, 2020</span>
-                            </a></li>
+                            {% endfor %}
                           </ul>
                         </div>
                       </div>
@@ -282,6 +288,5 @@
           });
         });
       });
-
-  </script>
+    </script>
 {% endblock %}

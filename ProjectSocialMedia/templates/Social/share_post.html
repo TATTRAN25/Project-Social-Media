@@ -7,18 +7,19 @@
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
-        {% if share and share.user == user %} 
-            {{ form.as_p }}  
-            <button type="submit" class="btn btn-primary">
-                {% if share %}Lưu{% else %}Chia sẻ{% endif %}
-            </button>
+        {% if share %}
+            {% if share.user == user %}
+                {{ form.as_p }}  
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            {% else %}
+                <p>Người dùng không xác định.</p>
+            {% endif %}
         {% else %}
-            <p><strong>Comment:</strong></p>
-            <p>{{ form.comment.value|default:"Không có bình luận nào." }}</p> 
+            <!-- Nếu không có share, luôn hiển thị form để chia sẻ -->
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Chia sẻ</button>
         {% endif %}
-        <a href="{% url 'SocialMedia:user_profile' share.user.id %}" class="btn btn-secondary">Quay lại trang cá nhân</a>
-
-        <!-- Hiển thị thông tin bài viết đang chia sẻ -->
+        
         {% if post %}
             <h4>Thông tin bài viết:</h4>
             <p><strong>Tiêu đề:</strong> {{ post.title }}</p>
