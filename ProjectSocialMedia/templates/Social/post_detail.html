@@ -24,5 +24,31 @@
         {% endif %}
         <a href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}" class="btn btn-primary post-back-btn">Quay lại Trang</a>
     </div>
+
+    <!-- Phần bình luận -->
+    <div class="comments-section">
+        <h3>Bình luận</h3>
+        {% if comments %}
+            <ul class="comments-list">
+                {% for comment in comments %}
+                    <li class="comment">
+                        <strong>{{ comment.author.username }}</strong> {{ comment.created_at|timesince}} ago:
+                        <p>{{ comment.content }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Chưa có bình luận nào.</p>
+        {% endif %}
+
+        <!-- Form bình luận -->
+        <h4>Thêm Bình Luận</h4>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Gửi Bình Luận</button>
+        </form>
+    </div>
+
 </div>
 {% endblock %}

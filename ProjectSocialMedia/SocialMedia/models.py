@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import random
 import string
+from django.utils import timezone
 
 class UserProfileInfo(models.Model):
     STATUS_CHOICES = [
@@ -52,6 +53,14 @@ class Post(models.Model):
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
     def __str__(self):
         return self.title
+    
+class Comment(models.Model):
+    post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    def __str__(self):
+        return f"Comment by {self.author.username} commented on {self.post.title}."
 
 class PageAuthorization(models.Model):
     page = models.ForeignKey(Page, related_name='authorizations', on_delete=models.CASCADE)

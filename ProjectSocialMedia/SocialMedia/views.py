@@ -11,8 +11,8 @@ from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, CommentForm
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Comment
 from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
@@ -282,9 +282,11 @@ def manage_post(request, post_id=None, page_id=None):
         'post': post,
         'action': action
     })
+
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
+    comments = post.comments.all()
 
     # Kiểm tra trạng thái tài khoản
     if request.user.userprofileinfo.status == 'inactive':
@@ -300,7 +302,20 @@ def post_detail(request, post_id):
         else:
             messages.error(request, 'Bạn không có quyền xóa bài viết này.')
 
-    return render(request, 'Social/post_detail.html', {'post': post})
+     # Xử lý form bình luận
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('SocialMedia:post_detail', post_id=post.id)
+    else:
+        form = CommentForm()
+
+    return render(request, 'Social/post_detail.html', {'post': post, 'comments': comments, 'form': form})
+
 def index(request):
     posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
     pages = Page.objects.all()
