@@ -11,8 +11,8 @@ from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, CommentForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Comment
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, CommentForm, ReplyForm, Comment
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Comment, Reply
 from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
@@ -313,6 +313,21 @@ def post_detail(request, post_id):
             return redirect('SocialMedia:post_detail', post_id=post.id)
     else:
         form = CommentForm()
+
+    # Xử lý form phản hồi
+    if request.method == 'POST' and 'comment_id' in request.POST:
+        comment_id = request.POST.get('comment_id')
+        comment = get_object_or_404(Comment, id=comment_id)
+        form = ReplyForm(request.POST)
+        
+        if form.is_valid():
+            reply = form.save(commit=False)
+            reply.comment = comment
+            reply.author = request.user
+            reply.save()
+            return redirect('SocialMedia:post_detail', post_id=post.id)
+    else:
+        form = ReplyForm()
 
     return render(request, 'Social/post_detail.html', {'post': post, 'comments': comments, 'form': form})
 
