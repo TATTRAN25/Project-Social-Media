@@ -165,3 +165,14 @@
 .reaction-btn.selected {
     color: #f39c12; /* Ví dụ: Màu vàng khi chọn */
 }
+
+.delete-button {
+    color: red;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.delete-button:hover {
+    color: darkred;
+}

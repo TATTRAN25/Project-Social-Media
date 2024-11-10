@@ -1,0 +1,22 @@
+<!-- SocialMedia/manage_join_requests.html -->
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+    <h2>Yêu cầu tham gia nhóm {{ group.name }}</h2>
+
+    {% if join_requests %}
+        <ul>
+            {% for request in join_requests %}
+                <li>
+                    {{ request.user.username }} - 
+                    <a href="{% url 'SocialMedia:accept_join_request' request.id %}" class="btn btn-success">Chấp nhận</a>
+                    <a href="{% url 'SocialMedia:reject_join_request' request.id %}" class="btn btn-danger">Từ chối</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Không có yêu cầu tham gia nào.</p>
+    {% endif %}
+</div>
+{% endblock %}

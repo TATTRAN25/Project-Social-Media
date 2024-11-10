@@ -56,18 +56,36 @@
                                 </button>
                             </div>
                         </div>
-
-                            <button class="reply-btn" data-comment-id="{{ comment.id }}">Phản hồi</button>
-                            <!-- Form phản hồi -->
-                            <div class="reply-form" id="reply-form-{{ comment.id }}" style="display: none;">
-                                <form method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
-                                    {{ form.as_p }}
-                                    <button type="submit" class="btn btn-primary">Gửi Phản Hồi</button>
-                                </form>
-                            </div>                           
+                        <form method="POST" action="{% url 'SocialMedia:reply_comment' comment.id %}" class="reply-form">
+                            {% csrf_token %}
+                            {{ form.content }}
+                            <button type="submit" class="btn btn-primary">Reply</button>
+                        </form>
+  
+                        <button class="btn-show-reply btn-secondary toggle-replies">Show Replies</button>
+                        
+                        <!-- Hiển thị bình luận trả lời -->
+                        <div class="replies">
+                            {% for reply in comment.replies.all %}
+                                <div class="reply">
+                                    <strong>{{ reply.author.username }}</strong>: {{ reply.content }}<br>
+                                    <span class="reply-comment-date">Posted on: {{ reply.created_date|timesince }}</span>
+                                  </div>
+                            {% empty %}
+                                <p>No replies yet.</p>
+                            {% endfor %}
                         </div>
+  
+                        {% if request.user.is_authenticated %} 
+                            {% if request.user.is_staff or request.user == comment.author %}
+                                <form method="POST" action="{% url 'SocialMedia:delete_comment' comment.id %}" style="display: inline">
+                                {% csrf_token %}
+                                    <button type="submit" class="btn btn-link delete-button" title="Delete comment">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -146,5 +164,42 @@
             });
         });        
     });     
+    $(document).ready(function() {
+        $('.reply-form').on('submit', function(e) {
+            e.preventDefault(); // Ngăn chặn form submit thông thường
+    
+            const form = $(this);
+            const url = form.attr('action'); // Lấy URL từ action của form
+    
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: form.serialize(), // Serialize data của form
+                success: function(response) {
+                    // Kiểm tra nếu response có chứa dữ liệu phản hồi
+                    if (response.author && response.text && response.created_date) {
+                        // Tạo phần tử HTML cho phản hồi mới
+                        const newReplyElement = document.createElement('div');
+                        newReplyElement.classList.add('reply');
+                        newReplyElement.innerHTML = `
+                            <strong>${response.author}</strong>: ${response.text}<br>
+                            <span class="reply-comment-date">Posted on: ${response.created_date}</span>
+                        `;
+    
+                        // Thêm phần tử reply mới vào cuối danh sách reply
+                        form.closest('.replies').append(newReplyElement);
+    
+                        // Xóa nội dung của form sau khi gửi bình luận thành công
+                        form.find('textarea').val('');
+                    } else {
+                        alert("Có lỗi xảy ra khi gửi bình luận.");
+                    }
+                },
+                error: function(xhr) {
+                    alert('Có lỗi xảy ra khi gửi bình luận.');
+                }
+            });
+        });
+    });
 </script>
 {% endblock %}

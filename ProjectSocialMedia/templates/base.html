@@ -47,6 +47,12 @@
                     <span class="sr-only">(current)</span>
                   </a>
                 </li> 
+
+                <!-- Group link -->
+                {% url 'SocialMedia:group_list' as group_list_url %}
+                <li class="nav-item {% if request.path == group_list_url %}active{% endif %}">
+                  <a class="nav-link" href="{{ group_list_url }}">Group</a>
+                </li>
                 
                 <!-- About Us link -->
                 {% url 'SocialMedia:about' as about_url %}

@@ -1,0 +1,13 @@
+<!-- SocialMedia/reject_post.html -->
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+    <h2>Từ chối bài viết: {{ post.title }}</h2>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Từ chối</button>
+    </form>
+</div>
+{% endblock %}
