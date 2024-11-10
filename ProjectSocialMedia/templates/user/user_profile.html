@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
 {% block body_block %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
 <div class="profile_container">
     {% if blocked_user.blocker == current_user and blocked_user.blocked == profile.user %}
     <h1>You have blocked this user</h1>
@@ -48,6 +50,12 @@
                 <div class="admin_actions" style="margin-top: 20px;">
                     <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Quản lý Người dùng</a>
                 </div>
+            {% endif %}
+            {% else %}
+            {% if follow.following == profile.user %}
+                <a href="{% url 'SocialMedia:unfollow_user' profile.user.id %}" class="btn btn-info">Unfollow</a>
+            {% else %}
+                <a href="{% url 'SocialMedia:follow_user' profile.user.id %}" class="btn btn-outline-info">Follow</a>
             {% endif %}
             {% endif %}
             <a href="{% url 'SocialMedia:friends_list' %}" class="btn btn-primary">Friend list</a>
