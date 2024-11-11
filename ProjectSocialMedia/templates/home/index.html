@@ -133,15 +133,11 @@
                                       </ul>
                                       <p>{{ share.comment|default:"" }}</p>
                                       <div class="blog-thumb">
-                                          {% if share.post.view_mode == 'private' or share.post.view_mode == 'only_me' %}
-                                              <p><strong>Nội dung đã được chỉnh chế độ riêng tư.</strong></p>
-                                          {% else %}
-                                              {% if share.post.image %}
-                                                  <img src="{{ share.post.image.url }}" alt="">
-                                              {% else %}
-                                                  <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
-                                              {% endif %}
-                                          {% endif %}
+                                        {% if share.post.image %}
+                                            <img src="{{ share.post.image.url }}" alt="">
+                                        {% else %}
+                                            <img src="{% static 'assets/images/default-image.jpg' %}" alt="">
+                                        {% endif %} 
                                       </div>
                                       <div class="post-options">
                                           <div class="row">

@@ -359,13 +359,13 @@ def can_user_view_post(user, post):
 def index(request):
     posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
     pages = Page.objects.all()
-    shared_posts = Share.objects.select_related('post').all()
+    shared_posts = Share.objects.select_related('post').order_by('-created_at')
 
     if request.user.is_authenticated:
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
 
-        # Lọc bài viết dựa trên view_mode
+        # Lọc bài viết chính dựa trên view_mode
         visible_posts = []
         for post in posts:
             if can_user_view_post(request.user, post):
@@ -374,10 +374,9 @@ def index(request):
         # Lọc các bài viết đã chia sẻ
         visible_shared_posts = []
         for share in shared_posts:
+            # Kiểm tra quyền truy cập bài viết đã chia sẻ
             if can_user_view_post(request.user, share.post):
                 visible_shared_posts.append(share)
-            elif share.post.view_mode in ['private', 'only_me']:
-                visible_shared_posts.append(share)  # Vẫn thêm vào danh sách nhưng sẽ xử lý hiển thị khác
 
     else:
         liked_post_ids = set()
