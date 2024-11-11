@@ -1,20 +1,21 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import SetPasswordForm,PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db.models import Q
 from django.db.models.signals import post_save
+from django.views.decorators.csrf import csrf_exempt
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post
-from django.db.models import Q
+import json
 
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, ShareForm
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Reaction, Share
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -88,7 +89,7 @@ def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
     pages = Page.objects.filter(author=profile.user)
     current_user = request.user
-
+    shared_posts = Share.objects.filter(user=profile.user).select_related('post')
     # Get blocked user
     blocked_user = BlockedFriend()
     if BlockedFriend.objects.filter(Q(blocker=current_user) | Q(blocked=current_user)):
@@ -96,7 +97,7 @@ def user_profile(request, pk):
             Q(blocker=current_user) | Q(blocked=current_user)
         )
     
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user})
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'shared_posts': shared_posts})
 
 @login_required
 def profile_update(request, user_id):
@@ -248,73 +249,145 @@ def page_detail(request, page_id):
 # Crud Post
 @login_required
 def manage_post(request, post_id=None, page_id=None):
-    # Kiểm tra trạng thái tài khoản
     if request.user.userprofileinfo.status == 'inactive':
         messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể đăng bài viết.')
         return redirect('SocialMedia:index')
 
-    # Xử lý bài viết đã tồn tại
     if post_id:
         post = get_object_or_404(Post, id=post_id)
         if post.author != request.user and not request.user.is_staff:
             messages.error(request, 'Bạn không có quyền chỉnh sửa bài viết này.')
             return redirect('SocialMedia:post_detail', post_id=post.id)
-        form = PostForm(request.POST or None, request.FILES or None, instance=post) 
+
+        form = PostForm(request.POST or None, request.FILES or None, instance=post)
         action = 'Cập Nhật'
     else:
         post = None
-        form = PostForm(request.POST or None, request.FILES or None)  
+        form = PostForm(request.POST or None, request.FILES or None)
         action = 'Đăng Bài Viết'
 
-    # Xử lý form khi được gửi
     if request.method == 'POST':
         if form.is_valid():
             new_post = form.save(commit=False)
             if not post_id:
                 new_post.page = get_object_or_404(Page, id=page_id)
                 new_post.author = request.user
+            
+            new_post.view_mode = form.cleaned_data['view_mode']  
             new_post.save()
             messages.success(request, f'Bài viết đã được {action.lower()} thành công!')
             return redirect('SocialMedia:post_detail', post_id=new_post.id)
+        else:
+            messages.error(request, 'Có lỗi trong việc lưu bài viết. Vui lòng kiểm tra lại.')
 
     return render(request, 'Social/manage_post.html', {
         'form': form,
         'post': post,
         'action': action
     })
+
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
 
-    # Kiểm tra trạng thái tài khoản
+    # Check account status
     if request.user.userprofileinfo.status == 'inactive':
-        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xóa bài viết.')
+        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xem bài viết.')
         return redirect('SocialMedia:index')
 
-    # Xử lý xóa bài viết
+    # Determine if the user can view the post
+    can_view = False
+
+    # Allow the author to view their own post regardless of visibility settings
+    if post.author == request.user:
+        can_view = True
+    else:
+        if post.view_mode == 'only_me':
+            can_view = False  # Only the author can view this
+        elif post.view_mode == 'private':
+            # Only friends can view the post
+            can_view = FriendShip.objects.filter(
+                (Q(user1=request.user) & Q(user2=post.author)) |
+                (Q(user1=post.author) & Q(user2=request.user))
+            ).exists()
+        elif post.view_mode == 'public':
+            # Public posts are viewable by anyone
+            can_view = True
+
+    if not can_view:
+        messages.error(request, 'Bạn không có quyền xem bài viết này.')
+        return redirect('SocialMedia:index')
+
+    # Handle post deletion
     if request.method == 'POST':
         if request.user == post.author or request.user.is_staff:
             post.delete()
             messages.success(request, 'Bài viết đã được xóa thành công!')
-            return redirect('SocialMedia:page_detail')
+            return redirect('SocialMedia:page_detail', post.page.id)
         else:
             messages.error(request, 'Bạn không có quyền xóa bài viết này.')
 
-    return render(request, 'Social/post_detail.html', {'post': post})
+    # Count reactions
+    reactions_count = {
+        'like': post.reaction_set.filter(reaction_type='like').count(),
+        'love': post.reaction_set.filter(reaction_type='love').count(),
+        'sad': post.reaction_set.filter(reaction_type='sad').count(),
+        'angry': post.reaction_set.filter(reaction_type='angry').count(),
+        'wow': post.reaction_set.filter(reaction_type='wow').count(),
+    }
+
+    context = {
+        'post': post,
+        'reactions_count': reactions_count,
+    }
+    return render(request, 'Social/post_detail.html', context)
+
+def can_user_view_post(user, post):
+    if post.author == user:
+        return True
+    if post.view_mode == 'public':
+        return True
+    if post.view_mode == 'private':
+        return FriendShip.objects.filter(
+            (Q(user1=user) & Q(user2=post.author)) |
+            (Q(user1=post.author) & Q(user2=user))
+        ).exists()
+    if post.view_mode == 'only_me':
+        return False
+    return False
+
 def index(request):
     posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
     pages = Page.objects.all()
-    
+    shared_posts = Share.objects.select_related('post').order_by('-created_at')
+
     if request.user.is_authenticated:
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
+
+        # Lọc bài viết chính dựa trên view_mode
+        visible_posts = []
+        for post in posts:
+            if can_user_view_post(request.user, post):
+                visible_posts.append(post)
+
+        # Lọc các bài viết đã chia sẻ
+        visible_shared_posts = []
+        for share in shared_posts:
+            # Kiểm tra quyền truy cập bài viết đã chia sẻ
+            if can_user_view_post(request.user, share.post):
+                visible_shared_posts.append(share)
+
     else:
         liked_post_ids = set()
+        visible_posts = posts.filter(view_mode='public')
+        visible_shared_posts = shared_posts.filter(post__view_mode='public')
 
     return render(request, 'home/index.html', {
-        'posts': posts,
+        'posts': visible_posts,
         'pages': pages,
         'liked_post_ids': liked_post_ids,
+        'shared_posts': visible_shared_posts,
     })
 
 @csrf_exempt
@@ -334,7 +407,94 @@ def like_post(request, post_id):
         return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+@login_required
+def like_page(request, page_id):
+    page = get_object_or_404(Page, id=page_id)
+
+    if request.user in page.likes.all():
+        # Nếu người dùng đã "like" rồi, bỏ "like"
+        page.likes.remove(request.user)
+    else:
+        # Nếu chưa "like", thêm vào danh sách "liked"
+        page.likes.add(request.user)
+
+    return redirect('SocialMedia:page_detail', page_id=page.id)
     
+@login_required
+def like_list(request):
+    # Lấy danh sách các trang mà người dùng đã like
+    liked_pages = Page.objects.filter(likes=request.user)
+
+    # Lấy danh sách các bài viết mà người dùng đã like
+    liked_posts = Post.objects.filter(likes=request.user)
+    context = {
+        'liked_pages': liked_pages,
+        'liked_posts': liked_posts,
+    }
+    return render(request, 'Social/like_list.html', context)
+
+@login_required
+def react_to_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    
+    reaction_type = request.POST.get('reaction_type')
+    # Kiểm tra xem người dùng đã phản ứng hay chưa
+    existing_reaction = post.reaction_set.filter(user=request.user).first()
+
+    if existing_reaction:
+        if existing_reaction.reaction_type == reaction_type:
+            # Nếu đã phản ứng với loại này, xóa phản ứng
+            existing_reaction.delete()
+            created = False
+        else:
+            # Nếu phản ứng khác, cập nhật loại phản ứng
+            existing_reaction.reaction_type = reaction_type
+            existing_reaction.save()
+            created = True
+    else:
+        # Tạo phản ứng mới
+        reaction = Reaction.objects.create(user=request.user, post=post, reaction_type=reaction_type)
+        created = True
+
+    # Tính toán số lượng phản ứng mới
+    reactions_count = {
+        'like': post.reaction_set.filter(reaction_type='like').count(),
+        'love': post.reaction_set.filter(reaction_type='love').count(),
+        'sad': post.reaction_set.filter(reaction_type='sad').count(),
+        'angry': post.reaction_set.filter(reaction_type='angry').count(),
+        'wow': post.reaction_set.filter(reaction_type='wow').count(),
+    }
+
+    return JsonResponse({'success': True, 'reactions_count': reactions_count, 'created': created})
+
+@login_required
+def share_post(request, share_id=None, post_id=None):
+    post = get_object_or_404(Post, id=post_id) if post_id else None
+
+    if share_id:
+        share = get_object_or_404(Share, id=share_id)
+        form = ShareForm(request.POST or None, instance=share)
+    else:
+        share = None
+        form = ShareForm(request.POST or None)
+
+    if request.method == 'POST':
+        if 'delete' in request.POST and share:
+            share.delete()  
+            return redirect('SocialMedia:user_profile', pk=request.user.id)  
+        elif form.is_valid():
+            new_share = form.save(commit=False)
+            new_share.user = request.user  
+            new_share.post = post  
+            new_share.save()  
+            return redirect('SocialMedia:user_profile', pk=request.user.id)  
+
+    return render(request, 'Social/share_post.html', {
+        'form': form,
+        'share': share,
+        'post': post, 
+    })
+
 def about(request):
     return render(request, 'home/about.html')
 

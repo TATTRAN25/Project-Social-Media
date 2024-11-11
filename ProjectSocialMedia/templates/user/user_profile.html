@@ -3,89 +3,117 @@
 {% block body_block %}
 <div class="profile_container">
     {% if blocked_user.blocker == current_user and blocked_user.blocked == profile.user %}
-    <h1>You have blocked this user</h1>
+        <h1>You have blocked this user</h1>
     {% elif blocked_user.blocked == current_user and blocked_user.blocker == profile.user %}
-    <h1>You have been blocked by {{ blocked_user.blocker }}</h1>
+        <h1>You have been blocked by {{ blocked_user.blocker }}</h1>
     {% else %}
-    <div class="profile_layout">
-        <div class="profile_header">
-            <div class="profile_cover_photo">
-                {% if profile.cover_photo %}
-                    <img src="{{ profile.cover_photo.url }}" alt="Cover Photo" class="profile-cover-photo">
-                {% else %}
-                    <div class="default-cover-photo">No cover photo uploaded.</div>
-                {% endif %}
-            </div>
-            <div class="profile_avatar">
-                {% if profile.avatar %}
-                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="profile-avatar">
-                {% else %}
-                    <p>No avatar uploaded.</p>
-                {% endif %}
-            </div>
-        </div>
-        <div class="profile_info">
-            <h1>{{ profile.user.username }} Profile</h1>
-            <div class="info_details">
-                <p><strong>Address:</strong> {{ profile.address }}</p>
-                <p><strong>Bio:</strong> {{ profile.bio }}</p>
-                <p><strong>Status:</strong> {{ profile.status }}</p>
-            </div>
-            <div class="profile_actions">
-            {% if profile.user == current_user %}
-                {% if profile.status == 'inactive' %}
-                    <div class="alert alert-warning">
-                        Tài khoản đã bị tạm ngưng hoạt động nên không thể chỉnh sửa.
-                    </div>
-                {% elif user.is_authenticated and user == profile.user %}
-                    <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Chỉnh sửa Hồ Sơ</a>
-                <div class="change_password_action" style="margin-top: 20px;">
-                    <a href="{% url 'SocialMedia:change_password' %}" class="btn btn-warning">Thay đổi Mật khẩu</a>
+        <div class="profile_layout">
+            <div class="profile_header">
+                <div class="profile_cover_photo">
+                    {% if profile.cover_photo %}
+                        <img src="{{ profile.cover_photo.url }}" alt="Cover Photo" class="profile-cover-photo">
+                    {% else %}
+                        <div class="default-cover-photo">No cover photo uploaded.</div>
+                    {% endif %}
                 </div>
-                {% endif %}
-            </div>
-            {% if user.is_staff %}
-                <div class="admin_actions" style="margin-top: 20px;">
-                    <a href="{% url 'SocialMedia:profile_list' %}" class="btn btn-secondary">Quản lý Người dùng</a>
+                <div class="profile_avatar">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="Avatar" class="profile-avatar">
+                    {% else %}
+                        <p>No avatar uploaded.</p>
+                    {% endif %}
                 </div>
-            {% endif %}
-            {% endif %}
-            <a href="{% url 'SocialMedia:friends_list' %}" class="btn btn-primary">Friend list</a>
-            <a href="{% url 'SocialMedia:block_list' %}" class="btn btn-danger">Block list</a>
-        </div>
-        
-        <div class="user_pages">
-            {% if pages %}
-                <h3>Trang:</h3>  
-                <ul>
-                    {% for page in pages %}
-                    <li>
-                        <a href="{% url 'SocialMedia:page_detail' page.id %}">{{ page.title }}</a>
-                        {% if page.posts.all %}
-                            <ul>
-                                {% for post in page.posts.all %}
-                                <li>
-                                    <a style="color: black;" href="{% url 'SocialMedia:post_detail' post.id %}">Tên bài viết: {{ post.title }} - Ngày đăng: {{ post.created_at }}</a>  
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <li>Không có bài viết nào. 
-                                <a href="{% url 'SocialMedia:manage_post' page.id %}">Thêm bài viết</a>
-                            </li>
+            </div>
+            <div class="profile_info">
+                <h1>{{ profile.user.username }} Profile</h1>
+                <div class="info_details">
+                    <p><strong>Address:</strong> {{ profile.address }}</p>
+                    <p><strong>Bio:</strong> {{ profile.bio }}</p>
+                    <p><strong>Status:</strong> {{ profile.status }}</p>
+                </div>
+                <div class="profile_actions">
+                    {% if profile.user == current_user %}
+                        {% if profile.status == 'inactive' %}
+                            <div class="alert alert-warning">
+                                Tài khoản đã bị tạm ngưng hoạt động nên không thể chỉnh sửa.
+                            </div>
+                        {% elif user.is_authenticated and user == profile.user %}
+                            <a href="{% url 'SocialMedia:profile_update' profile.pk %}" class="btn btn-primary">Chỉnh sửa Hồ Sơ</a>
+                            <div class="change_password_action" style="margin-top: 20px;">
+                                <a href="{% url 'SocialMedia:change_password' %}" class="btn btn-warning">Thay đổi Mật khẩu</a>
+                            </div>
                         {% endif %}
-                    </li>
-                    {% endfor %}
-                    </li>
-                </ul>
-            {% else %}
-                <p>Không có trang nào được tạo.</p>
-            {% endif %}
-            <div class="add_page">
-                <a href="{% url 'SocialMedia:manage_page' %}" class="btn btn-success">Tạo Trang Mới</a>
+                    {% endif %}
+                    <a href="{% url 'SocialMedia:friends_list' %}" class="btn btn-primary">Friend list</a>
+                    <a href="{% url 'SocialMedia:like_list' %}" class="btn btn-primary">Like list</a>
+                    <a href="{% url 'SocialMedia:block_list' %}" class="btn btn-danger">Block list</a>
+                </div>
+
+                <div class="user_pages">
+                    {% if pages %}
+                        <h3>Trang:</h3>  
+                        <ul>
+                            {% for page in pages %}
+                                <li>
+                                    <a href="{% url 'SocialMedia:page_detail' page.id %}">{{ page.title }}</a>
+                                    {% if page.posts.all %}
+                                        <ul>
+                                            {% for post in page.posts.all %}
+                                                <li>
+                                                    <a style="color: black;" href="{% url 'SocialMedia:post_detail' post.id %}">Tên bài viết: {{ post.title }} - Ngày đăng: {{ post.created_at }}</a>  
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <li>Không có bài viết nào. 
+                                            <a href="{% url 'SocialMedia:manage_post' page.id %}">Thêm bài viết</a>
+                                        </li>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Không có trang nào được tạo.</p>
+                    {% endif %}
+                    <div class="add_page">
+                        <a href="{% url 'SocialMedia:manage_page' %}" class="btn btn-success">Tạo Trang Mới</a>
+                    </div>
+                </div>
+
+                <div class="shared_posts">
+                    <h3>Bài Viết Đã Chia Sẻ</h3>
+                    {% if shared_posts %}
+                        <ul>
+                            {% for share in shared_posts %}
+                            <li>
+                                <a href="{% url 'SocialMedia:share_post' share.id share.post.id %}">
+                                    {{ share.post.title }} - Chia sẻ bởi {{ share.user.username }} - Ngày chia sẻ: {{ share.created_at|date:"F j, Y" }}
+                                </a>
+                                {% if share.post %}
+                                    {% if share.user == user %}  {# Chỉ hiển thị icon chỉnh sửa cho chính user #}
+                                        <a href="{% url 'SocialMedia:share_post' share.id share.post.id %}" style="background: none; border: none; color: orange; cursor: pointer;">✏️</a>
+                                    {% endif %}
+                                    {% if share.user == user or user.is_staff %}  {# Hiển thị icon xóa cho admin và chính user #}
+                                        <form action="{% url 'SocialMedia:share_post' share.id share.post.id %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" name="delete" style="background: none; border: none; color: red; cursor: pointer;" onclick="return confirm('Bạn có chắc chắn muốn xóa bài chia sẻ này không?');">
+                                                🗑️
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% else %}
+                                    <p>Bài viết không tồn tại.</p>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Không có bài viết nào được chia sẻ.</p>
+                    {% endif %}
+                </div>
+
             </div>
         </div>
-    </div>
     {% endif %}
 </div>
 {% endblock %}
