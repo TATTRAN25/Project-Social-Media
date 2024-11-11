@@ -1,0 +1,65 @@
+<!-- SocialMedia/group_detail.html -->
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+
+    <!-- Hiển thị thông báo -->
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <h2>{{ group.name }}</h2>
+    <p>{{ group.description }}</p>
+    <p><strong>Số thành viên:</strong> {{ group.members.count }}</p>
+
+    {% if user == group.creator %}
+    {% if join_requests %}
+    <div class="join-requests">
+        <h3>Yêu cầu tham gia nhóm:</h3>
+        <ul>
+            {% for request in join_requests %}
+            <li>
+                {{ request.user.username }} muốn tham gia nhóm này.
+                <a href="{% url 'SocialMedia:approve_join_request' request.pk %}" class="btn btn-success">Phê duyệt</a>
+                <a href="{% url 'SocialMedia:reject_join_request' request.pk %}" class="btn btn-danger">Từ chối</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p>Không có yêu cầu tham gia nhóm nào.</p>
+    {% endif %}
+    {% endif %}
+
+    <h4>Bài viết</h4>
+    {% if posts %}
+        <ul>
+            {% for post in posts %}
+                <li>
+                    <strong>{{ post.title }}</strong><br>
+                    {{ post.content }}<br>
+                    Trạng thái: {{ post.get_status_display }}
+                    {% if post.status == 'pending' %}
+                        {% if user == post.group.creator %}
+                            <a href="{% url 'SocialMedia:approve_post' post.id %}" class="btn btn-success">Phê duyệt</a>
+                            <a href="{% url 'SocialMedia:reject_post' post.id %}" class="btn btn-danger">Từ chối</a>
+                        {% endif %}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Chưa có bài viết nào.</p>
+    {% endif %}
+
+    <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
+    {% if not is_member and user != group.creator %}
+        <a href="{% url 'SocialMedia:join_group' pk=group.pk %}" class="btn btn-primary">Tham gia nhóm</a>
+    {% endif %}
+</div>
+{% endblock %}

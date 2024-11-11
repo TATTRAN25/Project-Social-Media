@@ -59,6 +59,23 @@
             </div>
         </div>
 
+        <div class="user_groups">
+            <h3>Nhóm của tôi:</h3>
+            {% if groups %}
+                <ul>
+                    {% for group in groups %}
+                        <li>
+                            <a href="{% url 'SocialMedia:group_detail' group.pk %}">{{ group.name }}</a>
+                            <a href="{% url 'SocialMedia:update_group' group.pk %}" class="btn btn-warning">Sửa</a>
+                            <a href="{% url 'SocialMedia:delete_group' group.pk %}" class="btn btn-danger">Xóa</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Chưa có nhóm nào.</p>
+            {% endif %}
+        </div>
+
         <div class="user_pages">
             {% if pages %}
                 <h3>Trang:</h3>
@@ -117,4 +134,4 @@
         </div>
     {% endif %}
 </div>
-{% endblock %}
+{% endblock %}  
