@@ -2,6 +2,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Search Friends</title>
@@ -86,14 +87,15 @@
         padding: 15px;
     }
 
-    a{
+    a {
         color: black;
         text-decoration: none;
     }
 </style>
 
 <body>
-    <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends</h1>
+    <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends
+    </h1>
     <form method="GET" action="{% url 'SocialMedia:search_friends' %}">
         <input type="text" name="friend_name" placeholder="Search by username...">
         <button type="submit">Search</button>
@@ -101,19 +103,25 @@
 
     <ul>
         {% for user in results %}
-            <li>
-                <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
-                {% if friend_ship.user1 == user or friend_ship.user2 == user %}
-                <span>Friend</span>
-                {% elif friend_request.from_user == user or friend_request.to_user == user %}
-                <span>Send</span>
-                {% else %}
-                <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
-                {% endif %}
-            </li>
+        <li>
+            <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
+            <!-- Check if the user is already a friend -->
+            {% if user.id in friend_status %}
+            <span>Friend</span>
+
+            <!-- Check if a friend request has been sent by the current user -->
+            {% elif user.id in pending_requests %}
+            <span>Send</span> <!-- Indicate that the friend request is sent -->
+
+            <!-- If no friendship and no pending request, show "Add Friend" -->
+            {% else %}
+            <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+            {% endif %}
+        </li>
         {% empty %}
-            <li>No results found.</li>
+        <li>No results found.</li>
         {% endfor %}
     </ul>
 </body>
+
 </html>

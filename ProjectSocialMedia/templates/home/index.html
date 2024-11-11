@@ -273,7 +273,7 @@
               })
               .then(data => {
                 // Cập nhật nút thích và số lượng lượt thích
-                button.textContent = data.is_liked ? 'Bỏ Like' : 'Like';
+                button.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
                 const likeCountSpan = document.getElementById(`like-count-${postId}`);
                 likeCountSpan.textContent = `${data.likes_count} lượt thích`;
               })

@@ -1,21 +1,22 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout,update_session_auth_hash
+from django.contrib import auth, messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import SetPasswordForm,PasswordChangeForm
+from django.contrib.auth.forms import SetPasswordForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.db.models.signals import post_save
-from django.views.decorators.csrf import csrf_exempt
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, ShareForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Reaction, Share
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Reaction, Share,Follow
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -92,12 +93,16 @@ def user_profile(request, pk):
     shared_posts = Share.objects.filter(user=profile.user).select_related('post')
     # Get blocked user
     blocked_user = BlockedFriend()
-    if BlockedFriend.objects.filter(Q(blocker=current_user) | Q(blocked=current_user)):
+    if BlockedFriend.objects.filter(Q(blocker=current_user, blocked=pk) | Q(blocked=current_user, blocker=pk)).exists():
         blocked_user = BlockedFriend.objects.get(
-            Q(blocker=current_user) | Q(blocked=current_user)
+            Q(blocker=current_user, blocked=pk) | Q(blocker=pk, blocked=current_user)
         )
+    # Get follow status
+    follow = Follow()
+    if Follow.objects.filter(follower=current_user, following=pk).exists():
+        follow = Follow.objects.get(follower=current_user, following=pk)
     
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'shared_posts': shared_posts})
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'follow':follow, 'shared_posts': shared_posts})
 
 @login_required
 def profile_update(request, user_id):
@@ -390,7 +395,6 @@ def index(request):
         'shared_posts': visible_shared_posts,
     })
 
-@csrf_exempt
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     if request.method == "POST":
@@ -571,26 +575,34 @@ def friends_list(request):
 
 # Search friend
 @login_required
-def search_friends(request):
-    friend_request = FriendRequest()
-    if (FriendRequest.objects.filter(from_user=request.user).exists()):
-        friend_request = FriendRequest.objects.get(from_user=request.user)
-    friend_ship = FriendShip()
-    if (FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user)).exists()):
-        friend_ship = FriendShip.objects.get(Q(user1=request.user) | Q(user2=request.user))
+def search_friends(request):        
+    # Get all friendships involving the logged-in user
+    friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
+    
+    # Create a dictionary to store friendship status (True if the user is a friend)
+    friend_status = {}
+    for friendship in friend_ships:
+        # Store friendship status for both directions
+        if friendship.user1.id == request.user.id:
+            friend_status[friendship.user2.id] = True
+        elif friendship.user2.id == request.user.id:
+            friend_status[friendship.user1.id] = True
+
+    # Check for pending friend requests sent by the current user or received by the current user
+    pending_requests = {}
+    sent_requests = FriendRequest.objects.filter(from_user=request.user, accepted=False)
+
+    # Add sent requests to the pending_requests dictionary (status 'sent')
+    for request_sent in sent_requests:
+        pending_requests[request_sent.to_user.id] = 'sent'
 
     query = request.GET.get('friend_name')
     results = []
     if query:
         results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
+        print(friend_status)
 
-    context = {
-        'results': results,
-        'friend_request':friend_request,
-        'friend_ship':friend_ship
-    }
-            
-    return render(request, 'friend/search_friends.html', context)
+    return render(request, 'friend/search_friends.html', {'results':results, 'friend_status':friend_status, "pending_requests":pending_requests})
 
 # Delete friend
 def unfriend(request, friend_id):
@@ -630,3 +642,14 @@ def unblock(request, user_id):
     blocked_user = BlockedFriend.objects.get(blocker=request.user, blocked=user_id)
     blocked_user.delete()
     return redirect("SocialMedia:block_list")
+
+# Folow other user
+def follow_user(request, user_id):
+    user_to_follow = get_object_or_404(User, id=user_id)
+    Follow.objects.create(follower=request.user, following=user_to_follow)
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+
+def unfollow_user(request, user_id):
+    user_to_follow = get_object_or_404(User, id=user_id)
+    Follow.objects.filter(follower=request.user, following=user_to_follow).delete()
+    return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
