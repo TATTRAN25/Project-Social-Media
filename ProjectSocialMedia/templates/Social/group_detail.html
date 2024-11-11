@@ -17,6 +17,7 @@
     <p>{{ group.description }}</p>
     <p><strong>Số thành viên:</strong> {{ group.members.count }}</p>
 
+    {% if user == group.creator %}
     {% if join_requests %}
     <div class="join-requests">
         <h3>Yêu cầu tham gia nhóm:</h3>
@@ -32,6 +33,7 @@
     </div>
     {% else %}
     <p>Không có yêu cầu tham gia nhóm nào.</p>
+    {% endif %}
     {% endif %}
 
     <h4>Bài viết</h4>
@@ -55,7 +57,8 @@
         <p>Chưa có bài viết nào.</p>
     {% endif %}
 
-    {% if not is_member %}
+    <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
+    {% if not is_member and user != group.creator %}
         <a href="{% url 'SocialMedia:join_group' pk=group.pk %}" class="btn btn-primary">Tham gia nhóm</a>
     {% endif %}
 </div>

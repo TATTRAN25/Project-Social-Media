@@ -59,17 +59,13 @@ class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
-    def __str__(self):
-        return f"Comment by {self.author.username} commented on {self.post.title}."
-    
-class ReplyComment(models.Model):
-    comment = models.ForeignKey(Comment, related_name='replies', on_delete=models.CASCADE)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
 
     def __str__(self):
-       return f'Reply by {self.author.username} on {self.comment}'
+        return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
+
+    def is_reply(self):
+        return self.parent_comment is not None
 
 class PageAuthorization(models.Model):
     page = models.ForeignKey(Page, related_name='authorizations', on_delete=models.CASCADE)
@@ -79,8 +75,6 @@ class PageAuthorization(models.Model):
 
     class Meta:
         unique_together = ('page', 'user')
-
-
 
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)

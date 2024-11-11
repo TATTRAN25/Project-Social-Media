@@ -33,7 +33,6 @@ urlpatterns = [
     path('pages/<int:page_id>/posts/manage/', views.manage_post, name='manage_post'),
     path('posts/manage/<int:post_id>/', views.manage_post, name='manage_post_edit'),   
     path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
-    path('comment/<int:comment_id>/reply/', views.reply_comment, name='reply_comment'),
     path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
     # url friend
     path('friends_list/', views.friends_list, name='friends_list'),

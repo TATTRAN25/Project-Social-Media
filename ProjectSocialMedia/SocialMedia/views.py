@@ -11,8 +11,8 @@ from django.http import HttpResponseRedirect, HttpResponse,JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, CommentForm, ReplyCommentForm, GroupForm, GroupPostForm
-from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Comment, ReplyComment, Group, GroupPost, JoinRequest
+from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm, CommentForm, GroupForm, GroupPostForm
+from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend, Page, Post, Comment, Group, GroupPost, JoinRequest
 from django.db.models import Q
 
 # Tự động thêm profile nếu tạo tk admin
@@ -288,15 +288,16 @@ def manage_post(request, post_id=None, page_id=None):
 @login_required
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.all()
+    comments = post.comments.filter(parent_comment__isnull=True)  # Lấy bình luận gốc (không có parent_comment)
+    form = CommentForm()
 
     # Kiểm tra trạng thái tài khoản
     if request.user.userprofileinfo.status == 'inactive':
-        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xóa bài viết.')
+        messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể bình luận hoặc xóa bài viết.')
         return redirect('SocialMedia:index')
 
     # Xử lý xóa bài viết
-    if request.method == 'POST':
+    if request.method == 'POST' and 'delete_post' in request.POST:  # Phân biệt giữa xóa bài viết và gửi bình luận
         if request.user == post.author or request.user.is_staff:
             post.delete()
             messages.success(request, 'Bài viết đã được xóa thành công!')
@@ -304,45 +305,26 @@ def post_detail(request, post_id):
         else:
             messages.error(request, 'Bạn không có quyền xóa bài viết này.')
 
-     # Xử lý form bình luận
-    if request.method == 'POST':
+    # Xử lý form bình luận
+    if request.method == 'POST' and 'comment' in request.POST:  # Phân biệt việc gửi bình luận
         form = CommentForm(request.POST)
         if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.save()
-            return redirect('SocialMedia:post_detail', post_id=post.id)
-    else:
-        form = CommentForm()
+            new_comment = form.save(commit=False)
+            new_comment.author = request.user
+            new_comment.post = post
+
+            # Kiểm tra xem có phải bình luận trả lời không
+            parent_comment_id = request.POST.get('parent_comment')
+            if parent_comment_id:
+                parent_comment = Comment.objects.get(id=parent_comment_id)
+                new_comment.parent_comment = parent_comment
+
+            new_comment.save()
+            messages.success(request, 'Bình luận của bạn đã được đăng!')
+            return redirect('SocialMedia:post_detail', post_id=post.id)  # Refresh lại trang chi tiết bài viết
 
     return render(request, 'Social/post_detail.html', {'post': post, 'comments': comments, 'form': form})
 
-@login_required
-def reply_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-    
-    # Kiểm tra xem người dùng đã đăng nhập hay chưa
-    if request.method == 'POST':
-        if not request.user.is_authenticated:
-            return JsonResponse({'error': 'You need to log in to reply to comments.'}, status=403)
-
-        form = ReplyCommentForm(request.POST)
-        if form.is_valid():
-            reply = form.save(commit=False)
-            reply.author = request.user
-            reply.comment = comment  # Gán bình luận cha
-            reply.created_at = timezone.now()
-            reply.save()
-
-            # Trả về phản hồi JSON
-            return JsonResponse({
-                'author': reply.author.username,
-                'text': reply.content,
-                'created_date': reply.created_at.strftime("%j %B %Y"),
-            })
-
-    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
 def delete_comment(request, comment_id):
@@ -351,7 +333,13 @@ def delete_comment(request, comment_id):
 
     # Kiểm tra xem người dùng có quyền xóa bình luận không
     if request.user == comment.author or request.user.is_staff:
-        # Xóa bình luận
+        # Nếu bình luận là phản hồi, chúng ta không cần phải xóa các bình luận con của nó.
+        # Nếu bình luận là bình luận gốc, xóa các bình luận con.
+        if not comment.parent_comment:
+            # Xóa tất cả các bình luận con (reply) của bình luận gốc
+            comment.replies.all().delete()
+        
+        # Xóa bình luận chính (cha hoặc trả lời)
         comment.delete()
         messages.success(request, 'Bình luận đã được xóa thành công!')
     else:
