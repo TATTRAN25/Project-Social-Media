@@ -1,18 +1,21 @@
+import json
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import auth, messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import SetPasswordForm, PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models import Q
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-import json
 
 from .forms import (
     UserRegistrationForm,
@@ -568,6 +571,7 @@ def share_post(request, share_id=None, post_id=None):
         'post': post, 
     })
 
+
 def about(request):
     return render(request, 'home/about.html')
 
@@ -580,44 +584,83 @@ def post_details(request):
 def contact(request):
     return render(request, 'home/contact.html')
 
-# Handle friend request
-# Send friend request
+# Gửi thông báo chung cho các người dùng
+def notify_users(message, notification_type, **extra_fields):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+    'friendship_notifications',
+    {
+        'type': 'send_notification',
+        'message': message,
+        'notification_type': notification_type, 
+        **extra_fields
+    }
+)
+
+# Gửi yêu cầu kết bạn
 @login_required
 def send_friend_request(request, user_id):
     to_user = get_object_or_404(User, id=user_id)
-    # Ensure a request isn't already sent
-    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+    
+    if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+        messages.info(request, "Bạn đã gửi yêu cầu kết bạn đến người dùng này trước đó.")
+    else:
         FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+
+        # Gửi thông báo đến người nhận yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã gửi yêu cầu kết bạn đến {to_user.username}",
+            notification_type="friend_request_sent",
+            from_user=request.user.username,
+            user_id=to_user.id
+        )
+        messages.success(request, "Yêu cầu kết bạn đã được gửi.")
+
     return redirect('SocialMedia:search_friends')
 
-# Reject friend request
+# Từ chối yêu cầu kết bạn
 @login_required
 def decline_friend_request(request, request_id):
     friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
-    friend_request.delete()
+    
+    with transaction.atomic():
+        friend_request.delete()
+
+        # Gửi thông báo đến người gửi yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã từ chối yêu cầu kết bạn của bạn.",
+            notification_type="friend_request_declined",
+            from_user=request.user.username,
+            request_id=request_id
+        )
+        messages.success(request, "Bạn đã từ chối yêu cầu kết bạn.")
+
     return redirect('SocialMedia:pending_friend_requests')
 
-# Add friend
+# Chấp nhận yêu cầu kết bạn
 @login_required
 def accept_friend_request(request, request_id):
-    friend_requests = FriendRequest.objects.filter(id=request_id, to_user=request.user)
-    for friend_request in friend_requests:
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    
+    with transaction.atomic():
         friend_request.accepted = True
         friend_request.save()
 
-        friend_request_reverses = FriendRequest()
-        if FriendRequest.objects.filter(from_user=request.user):
-            friend_request_reverses = FriendRequest.objects.filter(from_user=request.user)
-            for friend_request_reverse in friend_request_reverses:
-                friend_request_reverse.accepted = True
-                friend_request_reverse.save()
-
-        # Create a Friendship record
+        # Tạo một bản ghi Friendship
         FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
+
+        # Gửi thông báo đến người gửi yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã chấp nhận yêu cầu kết bạn của bạn.",
+            notification_type="friend_request_accepted",
+            from_user=request.user.username,
+            user_id=friend_request.from_user.id
+        )
+        messages.success(request, "Bạn đã chấp nhận yêu cầu kết bạn.")
 
     return redirect('SocialMedia:friends_list')
 
-# Display pending friend requests for the user
+# Xem danh sách yêu cầu kết bạn đang chờ xử lý
 @login_required
 def pending_friend_requests(request):
     requests = FriendRequest.objects.filter(to_user=request.user, accepted=False)
@@ -645,33 +688,53 @@ def friends_list(request):
 # Search friend
 @login_required
 def search_friends(request):        
-    # Get all friendships involving the logged-in user
+    # Lấy tất cả các mối quan hệ bạn bè liên quan đến người dùng đang đăng nhập
     friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
     
-    # Create a dictionary to store friendship status (True if the user is a friend)
+    # Tạo một từ điển để lưu trạng thái bạn bè
     friend_status = {}
     for friendship in friend_ships:
-        # Store friendship status for both directions
         if friendship.user1.id == request.user.id:
             friend_status[friendship.user2.id] = True
         elif friendship.user2.id == request.user.id:
             friend_status[friendship.user1.id] = True
 
-    # Check for pending friend requests sent by the current user or received by the current user
+    # Kiểm tra yêu cầu kết bạn đang chờ xử lý
     pending_requests = {}
     sent_requests = FriendRequest.objects.filter(from_user=request.user, accepted=False)
 
-    # Add sent requests to the pending_requests dictionary (status 'sent')
     for request_sent in sent_requests:
         pending_requests[request_sent.to_user.id] = 'sent'
 
     query = request.GET.get('friend_name')
     results = []
     if query:
-        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
-        print(friend_status)
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
 
-    return render(request, 'friend/search_friends.html', {'results':results, 'friend_status':friend_status, "pending_requests":pending_requests})
+    # Kiểm tra xem có yêu cầu kết bạn nào được gửi từ giao diện không
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        to_user = get_object_or_404(User, id=user_id)
+
+        if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+            messages.info(request, "Bạn đã gửi yêu cầu kết bạn đến người dùng này trước đó.")
+        else:
+            FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+
+            # Gửi thông báo đến người nhận yêu cầu
+            notify_users(
+                message=f"{request.user.username} đã gửi yêu cầu kết bạn đến {to_user.username}",
+                notification_type="friend_request_sent",
+                from_user=request.user.username,
+                user_id=to_user.id
+            )
+            messages.success(request, "Yêu cầu kết bạn đã được gửi.")
+
+    return render(request, 'friend/search_friends.html', {
+        'results': results,
+        'friend_status': friend_status,
+        'pending_requests': pending_requests
+    })
 
 # Delete friend
 def unfriend(request, friend_id):

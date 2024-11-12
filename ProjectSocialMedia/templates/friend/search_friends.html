@@ -1,11 +1,10 @@
-<!-- templates/search_friends.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Search Friends</title>
+    <title>Tìm bạn bè</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <style>
@@ -54,6 +53,7 @@
         padding: 0;
         max-width: 600px;
         margin: 0 auto;
+        margin-top: 20px; /* Khoảng cách trên danh sách kết quả */
     }
 
     li {
@@ -78,7 +78,7 @@
     }
 
     .btn-add:hover {
-        background-color: #007bff;
+        background-color: #0056b3;
     }
 
     .no-results {
@@ -94,34 +94,90 @@
 </style>
 
 <body>
-    <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends
+    <h1>
+        <a href="{% url 'SocialMedia:index' %}">
+            <i class="fa-sharp fa-solid fa-arrow-left"></i>
+        </a> 
+        Tìm bạn bè
     </h1>
     <form method="GET" action="{% url 'SocialMedia:search_friends' %}">
-        <input type="text" name="friend_name" placeholder="Search by username...">
-        <button type="submit">Search</button>
+        <input type="text" name="friend_name" placeholder="Tìm kiếm theo tên người dùng..." required>
+        <button type="submit">Tìm kiếm</button>
     </form>
 
-    <ul>
+    <ul id="search-results">
         {% for user in results %}
-        <li>
+        <li id="user-{{ user.id }}">
             <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
-            <!-- Check if the user is already a friend -->
             {% if user.id in friend_status %}
-            <span>Friend</span>
-
-            <!-- Check if a friend request has been sent by the current user -->
+            <span>Bạn bè</span>
             {% elif user.id in pending_requests %}
-            <span>Send</span> <!-- Indicate that the friend request is sent -->
-
-            <!-- If no friendship and no pending request, show "Add Friend" -->
+            <span>Yêu cầu đã gửi</span>
             {% else %}
-            <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+            <form method="POST" action="{% url 'SocialMedia:search_friends' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="btn-add">Kết bạn</button>
+            </form>
             {% endif %}
         </li>
         {% empty %}
-        <li>No results found.</li>
+        <li class="no-results">Không tìm thấy kết quả.</li>
         {% endfor %}
     </ul>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+                case 'friend_request_sent':
+                    handleFriendRequestSent(data);
+                    break;
+                case 'friend_request_accepted':
+                    handleFriendRequestAccepted(data);
+                    break;
+                case 'friend_request_declined':
+                    handleFriendRequestDeclined(data);
+                    break;
+                default:
+                    console.warn('Unknown notification type:', data.type);
+            }
+        };
+    
+        function handleFriendRequestSent(data) {
+            alert(data.message);  // Hiển thị thông báo
+            // Có thể cập nhật giao diện nếu cần
+        }
+    
+        function handleFriendRequestAccepted(data) {
+            const userId = data.from_user; // Giả sử dữ liệu trả về có chứa từ khóa này
+            const userElement = document.getElementById(`user-${userId}`);
+            if (userElement) {
+                userElement.innerHTML = '<span>Bạn bè</span>'; // Cập nhật trạng thái
+            }
+        }
+    
+        function handleFriendRequestDeclined(data) {
+            const userId = data.from_user; // Giả sử dữ liệu trả về có chứa từ khóa này
+            const userElement = document.getElementById(`user-${userId}`);
+            if (userElement) {
+                // Cập nhật giao diện nếu cần, có thể hiển thị thông báo
+                alert(`${data.from_user} đã từ chối yêu cầu kết bạn.`);
+            }
+        }
+    
+        socket.onclose = function(event) {
+            console.error('WebSocket đã đóng bất ngờ');
+        };
+    
+        socket.onerror = function(error) {
+            console.error('Lỗi WebSocket:', error);
+            alert('Kết nối đến thông báo không thành công. Vui lòng thử lại sau.');
+        };
+    </script>
 </body>
 
 </html>
