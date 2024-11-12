@@ -108,31 +108,32 @@
         };
     
         socket.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            const friendRequestsList = document.getElementById("friend-requests-list");
-    
-            if (data.type === 'friend_request_sent') {
-                // Thêm yêu cầu kết bạn mới vào danh sách
-                const newRequestItem = document.createElement("li");
-                newRequestItem.id = `request-${data.request_id}`;
-                newRequestItem.innerHTML = `
-                    ${data.from_user} 
-                    <a href="/accept_friend_request/${data.request_id}/" class="btn-accept">Chấp nhận</a>
-                    <a href="/decline_friend_request/${data.request_id}/" class="btn-decline">Từ chối</a>
-                `;
-                friendRequestsList.appendChild(newRequestItem);
-                alert(data.message);
-    
-            } else if (data.type === 'friend_request_accepted' || data.type === 'friend_request_declined') {
-                // Xóa yêu cầu kết bạn đã xử lý khỏi danh sách
-                const requestId = data.request_id;
+        const data = JSON.parse(event.data);
+        const friendRequestsList = document.getElementById("friend-requests-list");
+
+        if (data.type === 'friend_request_sent') {
+            // Thêm yêu cầu kết bạn mới vào danh sách
+            const newRequestItem = document.createElement("li");
+            newRequestItem.id = `request-${data.request_id}`;
+            newRequestItem.innerHTML = `
+                ${data.from_user} 
+                <a href="/accept_friend_request/${data.request_id}/" class="btn-accept">Chấp nhận</a>
+                <a href="/decline_friend_request/${data.request_id}/" class="btn-decline">Từ chối</a>
+            `;
+            friendRequestsList.appendChild(newRequestItem);
+            alert(data.message);
+
+        } else if (data.type === 'friend_request_accepted' || data.type === 'friend_request_declined') {
+            const requestId = data.request_id;
+            if (requestId) {  // Kiểm tra nếu requestId không null
                 const requestElement = document.getElementById(`request-${requestId}`);
                 if (requestElement) {
                     requestElement.remove(); // Xóa yêu cầu đã xử lý
-                    alert(`Yêu cầu kết bạn đã ${data.type === 'friend_request_accepted' ? 'được chấp nhận' : 'được từ chối'}.`);
+                    alert(`Yêu cầu kết bạn đã ${data.type === 'friend_request_accepted' ? 'được chấp nhận' : 'bị từ chối'}.`);
                 }
             }
-        };
+        }
+    };
     
         socket.onclose = function(event) {
             console.error('Kết nối WebSocket đã đóng bất ngờ');

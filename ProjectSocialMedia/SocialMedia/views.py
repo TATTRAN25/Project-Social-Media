@@ -605,14 +605,14 @@ def send_friend_request(request, user_id):
     if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
         messages.info(request, "Bạn đã gửi yêu cầu kết bạn đến người dùng này trước đó.")
     else:
-        FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+        friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
 
         # Gửi thông báo đến người nhận yêu cầu
         notify_users(
             message=f"{request.user.username} đã gửi yêu cầu kết bạn đến {to_user.username}",
             notification_type="friend_request_sent",
             from_user=request.user.username,
-            user_id=to_user.id
+            request_id=friend_request.id  # Đảm bảo ID của yêu cầu kết bạn được truyền
         )
         messages.success(request, "Yêu cầu kết bạn đã được gửi.")
 
