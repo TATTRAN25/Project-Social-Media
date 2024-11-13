@@ -250,39 +250,53 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        const likeButtons = document.querySelectorAll('.btn-like');
+          const likeButtons = document.querySelectorAll('.btn-like');
+  
+          likeButtons.forEach(button => {
+              const postId = button.getAttribute('data-post-id');
+  
+              // Kết nối WebSocket cho mỗi bài viết
+              const socket = new WebSocket(`ws://localhost:8000/ws/likes/${postId}/`);
+  
+              socket.onmessage = function(event) {
+                  const data = JSON.parse(event.data);
+                  const likeCountSpan = document.getElementById(`like-count-${data.post_id}`);
+                  const btn = document.querySelector(`.btn-like[data-post-id="${data.post_id}"]`);
 
-        likeButtons.forEach(button => {
-          button.addEventListener('click', function () {
-            const postId = button.getAttribute('data-post-id');
-            const url = `/SocialMedia/like/${postId}/`;
-
-            fetch(url, {
-              method: 'POST',
-              headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ post_id: postId })
-            })
-              .then(response => {
-                if (!response.ok) {
-                  throw new Error('Network response was not ok');
-                }
-                return response.json();
-              })
-              .then(data => {
-                // Cập nhật nút thích và số lượng lượt thích
-                button.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
-                const likeCountSpan = document.getElementById(`like-count-${postId}`);
-                likeCountSpan.textContent = `${data.likes_count} lượt thích`;
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
-              });
+                  // Cập nhật số lượt thích và trạng thái nút
+                  likeCountSpan.textContent = `${data.likes_count} lượt Like`;
+                  btn.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
+              };
+  
+              button.addEventListener('click', function () {
+                  const url = `/SocialMedia/like/${postId}/`;
+  
+                  fetch(url, {
+                      method: 'POST',
+                      headers: {
+                          'X-CSRFToken': '{{ csrf_token }}',
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ post_id: postId })
+                  })
+                  .then(response => {
+                      if (!response.ok) {
+                          throw new Error('Network response was not ok');
+                      }
+                      return response.json();
+                  })
+                  .then(data => {
+                      // Cập nhật nút thích và số lượng lượt thích sau khi nhấn
+                      button.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
+                      const likeCountSpan = document.getElementById(`like-count-${postId}`);
+                      likeCountSpan.textContent = `${data.likes_count} lượt Like`;
+                  })
+                  .catch(error => {
+                      console.error('Error:', error);
+                      alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+                  });
           });
-        });
+          });
       });
-    </script>
+  </script>
 {% endblock %}

@@ -476,12 +476,28 @@ def like_post(request, post_id):
         else:
             post.likes.add(request.user)
             is_liked = True
+
+        # Gửi thông báo đến nhóm WebSocket
+        notify_like(request.user, post)
+
         data = {
             'is_liked': is_liked,
             'likes_count': post.likes.count()
         }
         return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def notify_like(user, post):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_likes_{post.id}", 
+        {
+            'type': 'like_post',
+            'post_id': post.id,
+            'is_liked': user in post.likes.all(),  
+            'likes_count': post.likes.count(),
+        }
+    )
 
 @login_required
 def like_page(request, page_id):
