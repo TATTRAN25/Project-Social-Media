@@ -3,21 +3,14 @@
 {% block body_block %}
 <div class="custom-page-detail-container">
     <h1 class="custom-title">{{ page.title }}
-        <form action="{% url 'SocialMedia:like_page' page.id %}" method="post" style="display:inline;">
-            {% csrf_token %}
+        <button id="like-button" class="like-button" title="Like" data-page-id="{{ page.id }}">
             {% if user in page.likes.all %}
-                <!-- Nếu người dùng đã like, hiển thị biểu tượng dislike -->
-                <button type="submit" class="like-button" title="Dislike">
-                    <i class="fas fa-thumbs-down"></i>
-                </button>
+                <i class="fas fa-thumbs-down"></i> 
             {% else %}
-                <!-- Nếu người dùng chưa like, hiển thị biểu tượng like -->
-                <button type="submit" class="like-button" title="Like">
-                    <i class="fas fa-thumbs-up"></i>
-                </button>
+                <i class="fas fa-thumbs-up"></i> 
             {% endif %}
-        </form>
-        <span class="like-count">{{ page.likes.count }}</span>
+        </button>
+        <span id="like-count-page-{{ page.id }}" class="like-count">{{ page.likes.count }}</span>
     </h1>
     <p class="custom-content"><strong>Nội Dung:</strong> {{ page.content }}</p>
     <p class="custom-date"><strong>Ngày Tạo:</strong> {{ page.created_at|date:"d/m/Y H:i" }}</p>
@@ -64,4 +57,52 @@
         </a>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const likeButton = document.getElementById('like-button');
+        const pageId = likeButton.getAttribute('data-page-id');
+
+        // Kết nối WebSocket cho trang
+        const socket = new WebSocket(`ws://localhost:8000/ws/likes/page/${pageId}/`);
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const likeCountSpan = document.getElementById(`like-count-page-${data.page_id}`);
+
+            // Cập nhật số lượt thích và trạng thái nút
+            likeCountSpan.textContent = `${data.likes_count}`;
+            likeButton.innerHTML = data.is_liked ? '<i class="fas fa-thumbs-down"></i>' : '<i class="fas fa-thumbs-up"></i>';
+        };
+
+        likeButton.addEventListener('click', function () {
+            const url = `/SocialMedia/page/${pageId}/like/`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Cập nhật nút thích và số lượng lượt thích sau khi nhấn
+                likeButton.innerHTML = data.is_liked ? '<i class="fas fa-thumbs-down"></i>' : '<i class="fas fa-thumbs-up"></i>';
+                const likeCountSpan = document.getElementById(`like-count-page-${pageId}`);
+                likeCountSpan.textContent = `${data.likes_count}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+            });
+        });
+    });
+</script>
+
 {% endblock %}

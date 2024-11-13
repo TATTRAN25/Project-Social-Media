@@ -273,11 +273,19 @@ def page_detail(request, page_id):
         else:
             messages.error(request, 'Bạn không có quyền xóa trang này.')
         return redirect('SocialMedia:index')  
+
     # Lấy trang theo page_id
     page = get_object_or_404(Page, id=page_id)
     posts = page.posts.all()  
 
-    return render(request, 'Social/page_detail.html', {'page': page, 'posts': posts})
+    # Kiểm tra xem người dùng đã like trang chưa
+    user_liked = request.user in page.likes.all()
+
+    return render(request, 'Social/page_detail.html', {
+        'page': page,
+        'posts': posts,
+        'user_liked': user_liked  #
+    })
 
 # Crud Post
 @login_required
@@ -506,12 +514,33 @@ def like_page(request, page_id):
     if request.user in page.likes.all():
         # Nếu người dùng đã "like" rồi, bỏ "like"
         page.likes.remove(request.user)
+        is_liked = False
     else:
         # Nếu chưa "like", thêm vào danh sách "liked"
         page.likes.add(request.user)
+        is_liked = True
 
-    return redirect('SocialMedia:page_detail', page_id=page.id)
-    
+    # Gửi thông báo đến nhóm WebSocket
+    notify_like_page(page, is_liked)
+
+    data = {
+        'is_liked': is_liked,
+        'likes_count': page.likes.count()
+    }
+    return JsonResponse(data)
+
+def notify_like_page(page, is_liked):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_likes_page_{page.id}",
+        {
+            'type': 'like_page',
+            'page_id': page.id,
+            'is_liked': is_liked,
+            'likes_count': page.likes.count(),
+        }
+    )
+
 @login_required
 def like_list(request):
     # Lấy danh sách các trang mà người dùng đã like
