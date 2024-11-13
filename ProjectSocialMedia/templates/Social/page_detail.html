@@ -47,7 +47,7 @@
                 <li class="custom-post-item">
                     <h3><a href="{% url 'SocialMedia:post_detail' post.id %}" class="custom-post-link">{{ post.title }}</a></h3>
                     <div class="custom-post-image">
-                        <img src="{{ post.image.url|default:'assets/images/default-image.jpg' }}" alt="{{ post.title }}" />
+                        <img src="{% if post.image %}{{ post.image.url }}{% else %}{{ STATIC_URL }}assets/images/default-image.jpg{% endif %}" alt="{{ post.title }}" />
                     </div>
                     <p class="custom-post-content">Nội dung: {{ post.content }}</p>
                     <p class="custom-post-date"><strong>Ngày Đăng:</strong> {{ post.created_at|date:"d/m/Y H:i" }}</p>
