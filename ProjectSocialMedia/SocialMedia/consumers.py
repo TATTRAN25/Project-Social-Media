@@ -31,23 +31,21 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 class LikeNotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.post_id = self.scope['url_route']['kwargs']['post_id']
-        self.group_name = f"user_likes_post_{self.post_id}"
+        self.group_name = f"user_likes_{self.post_id}"
 
         # Tham gia vào nhóm
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        print(f"Connected to {self.group_name}")
 
     async def disconnect(self, close_code):
         # Rời khỏi nhóm khi ngắt kết nối
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        print(f"Disconnected from {self.group_name}")
 
     async def like_post(self, event):
         await self.send(text_data=json.dumps({
             'post_id': event['post_id'],
-            'is_liked': event['is_liked'],
-            'likes_count': event['likes_count'],
+            'is_liked': event['is_liked'],  
+            'likes_count': event['likes_count'],  
         }))
 
 class PageLikeNotificationConsumer(AsyncWebsocketConsumer):
