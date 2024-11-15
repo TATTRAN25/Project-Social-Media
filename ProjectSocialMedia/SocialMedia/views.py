@@ -606,17 +606,21 @@ def join_group(request, pk):
 
 @login_required
 def create_post(request, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-    # if request.user not in group.members.all():
-    #     return redirect('SocialMedia:group_detail', group_id=group.id)
-
+    group = get_object_or_404(Group, id=group_id)
+    
+    # Kiểm tra nếu người dùng là thành viên nhóm
+    if not group.members.filter(id=request.user.id).exists():
+        messages.error(request, "Bạn phải là thành viên của nhóm để đăng bài.")
+        return redirect('SocialMedia:group_detail', group_id=group.id)
+    
     if request.method == 'POST':
-        form = GroupPostForm(request.POST)
+        form = PostForm(request.POST)
         if form.is_valid():
             post = form.save(commit=False)
-            post.author = request.user
             post.group = group
+            post.author = request.user
             post.save()
+            messages.success(request, "Bài viết đã được đăng!")
             return redirect('SocialMedia:group_detail', group_id=group.id)
     else:
         form = GroupPostForm()
@@ -687,3 +691,19 @@ def reject_join_request(request, pk):
         messages.error(request, "Bạn không có quyền từ chối yêu cầu tham gia nhóm này.")
     
     return redirect('SocialMedia:user_profile')
+
+@login_required
+def leave_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if group.creator == request.user:
+        messages.error(request, "Bạn không thể rời nhóm vì bạn là người tạo nhóm.")
+        return redirect('SocialMedia:group_detail', group_id=group.id)
+
+    if group.members.filter(id=request.user.id).exists():
+        group.members.remove(request.user)
+        messages.success(request, "Bạn đã rời nhóm thành công.")
+    else:
+        messages.error(request, "Bạn không phải là thành viên của nhóm.")
+
+    return redirect('SocialMedia:group_detail', group_id=group.id)

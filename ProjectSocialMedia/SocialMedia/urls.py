@@ -57,4 +57,5 @@ urlpatterns = [
     path('posts/reject/<int:post_id>/', views.reject_post, name='reject_post'),
     path('group/<int:pk>/approve/', views.approve_join_request, name='approve_join_request'),
     path('group/<int:pk>/reject/', views.reject_join_request, name='reject_join_request'),
+    path('group/<int:group_id>/leave/', views.leave_group, name='leave_group'),
 ]

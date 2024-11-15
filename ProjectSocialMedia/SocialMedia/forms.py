@@ -90,4 +90,11 @@ class GroupForm(forms.ModelForm):
 class GroupPostForm(forms.ModelForm):
     class Meta:
         model = GroupPost
-        fields = ['title', 'content']
+        fields = ['title', 'content']  # Chỉ bao gồm những trường cần thiết cho GroupPost
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Nội dung bài viết nhóm...'}),
+        }
+        labels = {
+            'title': 'Tiêu đề',
+            'content': 'Nội dung',
+        }

@@ -5,13 +5,13 @@
 <div class="container mt-5">
 
     <!-- Hiển thị thông báo -->
-    {% if messages %}
+    {% comment %} {% if messages %}
         <div class="alert alert-info">
             {% for message in messages %}
                 <p>{{ message }}</p>
             {% endfor %}
         </div>
-    {% endif %}
+    {% endif %} {% endcomment %}
 
     <h2>{{ group.name }}</h2>
     <p>{{ group.description }}</p>
@@ -36,6 +36,11 @@
     {% endif %}
     {% endif %}
 
+    <!-- Hiển thị nút rời nhóm cho thành viên (trừ người tạo nhóm) -->
+    {% if is_member and user != group.creator %}
+        <a href="{% url 'SocialMedia:leave_group' group.id %}" class="btn btn-warning">Rời nhóm</a>
+    {% endif %}
+
     <h4>Bài viết</h4>
     {% if posts %}
         <ul>
@@ -55,6 +60,11 @@
         </ul>
     {% else %}
         <p>Chưa có bài viết nào.</p>
+    {% endif %}
+
+     <!-- Hiển thị nút đăng bài cho thành viên -->
+    {% if is_member %}
+        <a href="{% url 'SocialMedia:create_post' group.id %}" class="btn btn-primary">Đăng bài</a>
     {% endif %}
 
     <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
