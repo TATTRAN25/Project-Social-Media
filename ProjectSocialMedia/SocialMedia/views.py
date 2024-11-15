@@ -329,15 +329,15 @@ def manage_post(request, post_id=None, page_id=None):
 
 @login_required
 def post_detail(request, post_id):
-    # Get the post or return a 404 if it doesn't exist
+    # Lấy bài viết hoặc trả về 404 nếu không tồn tại
     post = get_object_or_404(Post, id=post_id)
 
-    # Check account status
+    # Kiểm tra trạng thái tài khoản
     if request.user.userprofileinfo.status == 'inactive':
         messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xem bài viết.')
         return redirect('SocialMedia:index')
 
-    # Determine if the user can view the post
+    # Kiểm tra quyền truy cập bài viết
     can_view = False
 
     if post.author == request.user:
@@ -350,33 +350,33 @@ def post_detail(request, post_id):
             (Q(user1=post.author) & Q(user2=request.user))
         ).exists()
     elif post.view_mode == 'only_me':
-        can_view = False  # Only the author can view this
+        can_view = False  # Chỉ tác giả có thể xem
 
     if not can_view:
         messages.error(request, 'Bạn không có quyền xem bài viết này.')
         return redirect('SocialMedia:index')
 
-    # Fetch comments for the post
+    # Lấy bình luận cho bài viết
     comments = post.comments.filter(parent_comment__isnull=True)
     form = CommentForm()
 
-    # Handle post deletion
+    # Xử lý yêu cầu xóa bài viết
     if request.method == 'POST':
         if 'delete_post' in request.POST:
             if request.user == post.author or request.user.is_staff:
                 post.delete()
                 messages.success(request, 'Bài viết đã được xóa thành công!')
-                return redirect('SocialMedia:page_detail', post.page.id)
+                return redirect('SocialMedia:index')
             else:
                 messages.error(request, 'Bạn không có quyền xóa bài viết này.')
-        elif 'comment' in request.POST:  # Handle comment submission
+        elif 'comment' in request.POST:  # Xử lý việc gửi bình luận
             form = CommentForm(request.POST)
             if form.is_valid():
                 new_comment = form.save(commit=False)
                 new_comment.author = request.user
                 new_comment.post = post
 
-                # Check if it's a reply to another comment
+                # Kiểm tra nếu đây là một phản hồi bình luận khác
                 parent_comment_id = request.POST.get('parent_comment')
                 if parent_comment_id:
                     parent_comment = get_object_or_404(Comment, id=parent_comment_id)
@@ -386,7 +386,7 @@ def post_detail(request, post_id):
                 messages.success(request, 'Bình luận của bạn đã được đăng!')
                 return redirect('SocialMedia:post_detail', post_id=post.id)
 
-    # Count reactions
+    # Đếm số lượng phản ứng
     reactions_count = {
         'like': post.reaction_set.filter(reaction_type='like').count(),
         'love': post.reaction_set.filter(reaction_type='love').count(),
@@ -442,37 +442,35 @@ def delete_comment(request, comment_id):
     return redirect('SocialMedia:post_detail', post_id=comment.post.id)
 
 def index(request):
-    posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
-    pages = Page.objects.all()
-    shared_posts = Share.objects.select_related('post').order_by('-created_at')
-
     if request.user.is_authenticated:
+        following_users = request.user.following.values_list('following', flat=True)
+        friends = request.user.friendships1.values_list('user2', flat=True).union(request.user.friendships2.values_list('user1', flat=True))
+
+        posts = Post.objects.filter(author__in=[request.user.id] + list(following_users) + list(friends)).prefetch_related('likes').order_by('-created_at')
+
+        # Lấy thông tin chia sẻ
+        shared_posts = Share.objects.filter(user__in=[request.user.id] + list(following_users) + list(friends)).select_related('post').order_by('-created_at')
+
+        # Tạo một danh sách để lưu thông tin chia sẻ
+        shared_info = []
+        for share in shared_posts:
+            shared_info.append({
+                'post_id': share.post.id,
+                'username': share.user.username,
+                'comment': share.comment
+            })
+
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
 
-        # Lọc bài viết chính dựa trên view_mode
-        visible_posts = []
-        for post in posts:
-            if can_user_view_post(request.user, post):
-                visible_posts.append(post)
-
-        # Lọc các bài viết đã chia sẻ
-        visible_shared_posts = []
-        for share in shared_posts:
-            # Kiểm tra quyền truy cập bài viết đã chia sẻ
-            if can_user_view_post(request.user, share.post):
-                visible_shared_posts.append(share)
-
     else:
         liked_post_ids = set()
-        visible_posts = posts.filter(view_mode='public')
-        visible_shared_posts = shared_posts.filter(post__view_mode='public')
+        posts = Post.objects.filter(view_mode='public').order_by('-created_at')
 
     return render(request, 'home/index.html', {
-        'posts': visible_posts,
-        'pages': pages,
+        'posts': posts,
         'liked_post_ids': liked_post_ids,
-        'shared_posts': visible_shared_posts,
+        'shared_info': shared_info,
     })
 
 def like_post(request, post_id):

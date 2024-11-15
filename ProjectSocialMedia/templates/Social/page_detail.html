@@ -5,7 +5,7 @@
     <h1 class="custom-title">{{ page.title }}
         <button id="like-button" class="like-button" title="Like" data-page-id="{{ page.id }}">
             {% if user in page.likes.all %}
-                <i class="fas fa-thumbs-down"></i> 
+                <i class="fas fa-thumbs-up"></i> 
             {% else %}
                 <i class="fas fa-thumbs-up"></i> 
             {% endif %}
@@ -70,9 +70,8 @@
             const data = JSON.parse(event.data);
             const likeCountSpan = document.getElementById(`like-count-page-${data.page_id}`);
 
-            // Cập nhật số lượt thích và trạng thái nút
+            // Cập nhật số lượt thích
             likeCountSpan.textContent = `${data.likes_count}`;
-            likeButton.innerHTML = data.is_liked ? '<i class="fas fa-thumbs-down"></i>' : '<i class="fas fa-thumbs-up"></i>';
         };
 
         likeButton.addEventListener('click', function () {
@@ -92,8 +91,7 @@
                 return response.json();
             })
             .then(data => {
-                // Cập nhật nút thích và số lượng lượt thích sau khi nhấn
-                likeButton.innerHTML = data.is_liked ? '<i class="fas fa-thumbs-down"></i>' : '<i class="fas fa-thumbs-up"></i>';
+                // Cập nhật số lượng lượt thích sau khi nhấn
                 const likeCountSpan = document.getElementById(`like-count-page-${pageId}`);
                 likeCountSpan.textContent = `${data.likes_count}`;
             })
