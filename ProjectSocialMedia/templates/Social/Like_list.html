@@ -1,0 +1,38 @@
+<!-- like_list.html -->
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="like-list-container">
+    <h1>Danh Sách Các Trang và Bài Viết Bạn Đã Thích</h1>
+
+    <h2>Các Trang:</h2>
+    {% if liked_pages %}
+        <ul>
+            {% for page in liked_pages %}
+                <li>
+                    <a href="{% url 'SocialMedia:page_detail' page.id %}">{{ page.title }}</a>
+                    <p>{{ page.content|truncatewords:20 }}</p>
+                    <p><strong>Ngày Tạo:</strong> {{ page.created_at|date:"d/m/Y" }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Bạn chưa thích trang nào.</p>
+    {% endif %}
+
+    <h2>Các Bài Viết:</h2>
+    {% if liked_posts %}
+        <ul>
+            {% for post in liked_posts %}
+                <li>
+                    <a href="{% url 'SocialMedia:post_detail' post.id %}">{{ post.title }}</a>
+                    <p>{{ post.content|truncatewords:20 }}</p>
+                    <p><strong>Ngày Đăng:</strong> {{ post.created_at|date:"d/m/Y" }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Bạn chưa thích bài viết nào.</p>
+    {% endif %}
+</div>
+{% endblock %}

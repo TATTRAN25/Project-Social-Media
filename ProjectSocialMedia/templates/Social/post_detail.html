@@ -1,39 +1,28 @@
-{% extends 'base.html' %} {% load static %}
-<link rel="stylesheet" href="{% static 'assets/css/style_post_detail.css' %}" />
+{% extends 'base.html' %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'assets/css/style_post_detail.css' %}">
 
 {% block body_block %}
 <div class="container post-detail-container">
-  <h1 class="post-title">Tiêu đề: {{ post.title }}</h1>
-  {% if post.image %}
-  <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" class="post-image" />
-  {% else %}
-  <p class="no-image">Không có hình ảnh</p>
-  {% endif %}
-  <p class="post-content">Nội dung: {{ post.content }}</p>
-  <p class="post-author">
-    <strong>Tác giả:</strong> {{ post.author.username }}
-  </p>
-
-  <div class="post-actions">
-    {% if request.user == post.author %}
-    <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-danger post-delete-btn">
-        Xóa Bài Viết
-      </button>
-    </form>
-    <a
-      href="{% url 'SocialMedia:manage_post_edit' post.id %}"
-      class="btn btn-secondary post-edit-btn"
-      >Chỉnh sửa Bài Viết</a
-    >
+    <h1 class="post-title">{{ post.title }}</h1>
+    {% if post.image %}
+        <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" class="post-image">
+    {% else %}
+        <p class="no-image">Không có hình ảnh</p>
     {% endif %}
-    <a
-      href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}"
-      class="btn btn-primary post-back-btn"
-      >Quay lại Trang</a
-    >
-  </div>
+    <p class="post-content">Nội dung: {{ post.content }}</p>
+    <p class="post-author"><strong>Tác giả:</strong> {{ post.author.username }}</p>
+
+    <div class="post-actions">
+        {% if request.user == post.author %}
+            <form method="post" action="{% url 'SocialMedia:post_detail' post.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger post-delete-btn">Xóa Bài Viết</button>
+            </form>
+            <a href="{% url 'SocialMedia:manage_post_edit' post.id %}" class="btn btn-secondary post-edit-btn">Chỉnh sửa Bài Viết</a>
+        {% endif %}
+        <a href="{% url 'SocialMedia:user_profile' post.author.userprofileinfo.id %}" class="btn btn-primary post-back-btn">Quay lại Trang</a>
+    </div>
 </div>
 
 <div class="comments-section-container">
@@ -132,111 +121,164 @@
           {{ form.as_p }}
           <button type="submit" name="comment" class="btn btn-primary">Gửi Bình Luận</button>
       </form>
+    <div class="comments-section">
+        <h3>Bình luận</h3>
+        {% if comments %}
+            <ul>
+                {% for comment in comments %}
+                    <li>
+                        <p><strong>{{ comment.author.username }}</strong>: {{ comment.content }}</p>
+                        <small>{{ comment.created_at|timesince }} ago</small>
+                        
+                        {% if request.user == comment.author or request.user.is_staff %}
+                            <form method="POST" action="{% url 'SocialMedia:delete_comment' comment.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link" title="Xóa bình luận">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <input type="hidden" name="parent_comment" value="{{ comment.id }}">
+                            <button type="submit" name="comment" class="btn btn-secondary">Trả lời</button>
+                        </form>
+                        
+                        {% for reply in comment.replies.all %}
+                            <div style="margin-left: 20px;">
+                                <p><strong>{{ reply.author.username }}</strong>: {{ reply.content }}</p>
+                                <small>{{ reply.created_at|timesince }} ago</small>
+                                {% if request.user == reply.author or request.user.is_staff %}
+                                    <form method="POST" action="{% url 'SocialMedia:delete_comment' reply.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link" title="Xóa bình luận trả lời">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Chưa có bình luận nào.</p>
+        {% endif %}
+        
+        <h3>Thêm bình luận</h3>
+        <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" name="comment" class="btn btn-primary">Gửi Bình Luận</button>
+        </form>
     </div>
 </div>
-  
-{% endblock %} {% block script %}
+
+<div class="post-actions">
+    <button class="btn btn-success react-button" id="react-button">Phản Ứng</button>
+    <div id="reaction-options" style="display: none;">
+        <form id="reaction-form" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="reaction_type" id="reaction-type">
+            <div class="reaction-buttons">
+                <button type="button" class="reaction-option" onclick="submitReaction('like')">
+                    <i class="fas fa-thumbs-up"></i> Thích &nbsp;<span class="reaction-count" id="like-count">{{ reactions_count.like }}</span>
+                </button>
+                <button type="button" class="reaction-option" onclick="submitReaction('love')">
+                    <i class="fas fa-heart"></i> Yêu &nbsp;<span class="reaction-count" id="love-count">{{ reactions_count.love }}</span>
+                </button>
+                <button type="button" class="reaction-option" onclick="submitReaction('sad')">
+                    <i class="fas fa-sad-tear"></i> Buồn &nbsp;<span class="reaction-count" id="sad-count">{{ reactions_count.sad }}</span>
+                </button>
+                <button type="button" class="reaction-option" onclick="submitReaction('angry')">
+                    <i class="fas fa-angry"></i> Giận dữ &nbsp;<span class="reaction-count" id="angry-count">{{ reactions_count.angry }}</span>
+                </button>
+                <button type="button" class="reaction-option" onclick="submitReaction('wow')">
+                    <i class="fas fa-surprise"></i> Wow &nbsp;<span class="reaction-count" id="wow-count">{{ reactions_count.wow }}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <span class="total-reaction-count" id="reaction-tooltip" style="display: none;">
+        {{ reactions_count.like }} Thích, 
+        {{ reactions_count.love }} Yêu, 
+        {{ reactions_count.sad }} Buồn, 
+        {{ reactions_count.angry }} Giận dữ, 
+        {{ reactions_count.wow }} Wow
+        (Tổng: {{ post.reaction_set.count }} Phản Ứng)
+    </span>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // Xử lý mở/đóng form phản hồi
-    const replyButtons = document.querySelectorAll(".reply-btn");
-    replyButtons.forEach((button) => {
-      button.addEventListener("click", function () {
-        const commentId = this.getAttribute("data-comment-id");
-        const replyForm = document.getElementById(`reply-form-${commentId}`);
-
-        // Toggle form phản hồi (hiện/ẩn)
-        if (
-          replyForm.style.display === "none" ||
-          replyForm.style.display === ""
-        ) {
-          replyForm.style.display = "block"; // Hiển thị form phản hồi
-        } else {
-          replyForm.style.display = "none"; // Ẩn form phản hồi
-        }
-      });
+    document.getElementById('react-button').addEventListener('click', function() {
+        const options = document.getElementById('reaction-options');
+        options.style.display = options.style.display === 'none' ? 'block' : 'none';
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-      // Xử lý hiển thị các emoji khi rê chuột vào biểu tượng chính
-      const emojiWrappers = document.querySelectorAll(".emoji-wrapper");
-      emojiWrappers.forEach((wrapper) => {
-        const reactionButton = wrapper.querySelector(".reaction-btn");
-        const emojiOptions = wrapper.querySelector(".emoji-options");
+    function submitReaction(reaction) {
+        document.getElementById('reaction-type').value = reaction;
+        
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'SocialMedia:react_to_post' post.id %}",
+            data: {
+                'reaction_type': reaction,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    document.getElementById('like-count').innerText = response.reactions_count.like;
+                    document.getElementById('love-count').innerText = response.reactions_count.love;
+                    document.getElementById('sad-count').innerText = response.reactions_count.sad;
+                    document.getElementById('angry-count').innerText = response.reactions_count.angry;
+                    document.getElementById('wow-count').innerText = response.reactions_count.wow;
 
-        // Khi rê chuột vào biểu tượng chính (like), hiển thị các emoji
-        reactionButton.addEventListener("mouseenter", function () {
-          emojiOptions.style.display = "block";
+                    document.querySelector('.total-reaction-count').innerText = response.reactions_count.like + response.reactions_count.love + response.reactions_count.sad + response.reactions_count.angry + response.reactions_count.wow + ' Phản Ứng';
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error(error);
+            }
         });
+    }
+    
+    $(document).ready(function () {
+        $(".reply-form").on("submit", function (e) {
+            e.preventDefault();
 
-        // Khi chuột rời khỏi, ẩn các emoji đi
-        wrapper.addEventListener("mouseleave", function () {
-          emojiOptions.style.display = "none";
-        });
-      });
+            const form = $(this);
+            const url = form.attr("action");
 
-      // Xử lý chọn một emoji
-      const reactionButtons = document.querySelectorAll(".reaction-btn");
-      reactionButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-          const commentId = this.getAttribute("data-comment-id");
-          const reaction = this.getAttribute("data-reaction");
-          const emojiWrapper = document.querySelector(
-            `#emoji-options-${commentId}`
-          );
-          const defaultButton = emojiWrapper.querySelector(".default-reaction");
-
-          // Đánh dấu emoji đã chọn (sáng lên)
-          const selectedButton = emojiWrapper.querySelector(
-            `[data-reaction="${reaction}"]`
-          );
-          selectedButton.classList.add("selected"); // Thêm lớp 'selected' cho emoji đã chọn
-
-          // Thay đổi biểu tượng mặc định (ví dụ: like) thành emoji đã chọn
-          defaultButton.innerHTML = selectedButton.innerHTML; // Thay nội dung của nút Like thành emoji đã chọn
-
-          // Gửi dữ liệu phản ứng đến backend (có thể dùng AJAX để gửi)
-          console.log(`Reacted on comment ${commentId} with ${reaction}`);
-        });
-      });
-    });
-  });
-  $(document).ready(function () {
-    $(".reply-form").on("submit", function (e) {
-      e.preventDefault(); // Ngăn chặn form submit thông thường
-
-      const form = $(this);
-      const url = form.attr("action"); // Lấy URL từ action của form
-
-      $.ajax({
-        type: "POST",
-        url: url,
-        data: form.serialize(), // Serialize data của form
-        success: function (response) {
-          // Kiểm tra nếu response có chứa dữ liệu phản hồi
-          if (response.author && response.text && response.created_date) {
-            // Tạo phần tử HTML cho phản hồi mới
-            const newReplyElement = document.createElement("div");
-            newReplyElement.classList.add("reply");
-            newReplyElement.innerHTML = `
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: form.serialize(),
+                success: function (response) {
+                    if (response.author && response.text && response.created_date) {
+                        const newReplyElement = document.createElement("div");
+                        newReplyElement.classList.add("reply");
+                        newReplyElement.innerHTML = `
                             <strong>${response.author}</strong>: ${response.text}<br>
                             <span class="reply-comment-date">Posted on: ${response.created_date}</span>
                         `;
-
-            // Thêm phần tử reply mới vào cuối danh sách reply
-            form.closest(".replies").append(newReplyElement);
-
-            // Xóa nội dung của form sau khi gửi bình luận thành công
-            form.find("textarea").val("");
-          } else {
-            alert("Có lỗi xảy ra khi gửi bình luận.");
-          }
-        },
-        error: function (xhr) {
-          alert("Có lỗi xảy ra khi gửi bình luận.");
-        },
-      });
+                        form.closest(".replies").append(newReplyElement);
+                        form.find("textarea").val("");
+                    } else {
+                        alert("Có lỗi xảy ra khi gửi bình luận.");
+                    }
+                },
+                error: function (xhr) {
+                    alert("Có lỗi xảy ra khi gửi bình luận.");
+                },
+            });
+        });
     });
-  });
 </script>
 {% endblock %}

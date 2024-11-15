@@ -36,21 +36,28 @@ class Page(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    like_pages = models.ManyToManyField(User, related_name='liked_pages', blank=True)  #
+    likes = models.ManyToManyField(User, related_name='liked_pages', blank=True)
 
     def __str__(self):
         return self.title
 
-
 class Post(models.Model):
+    VIEW_CHOICES = [
+        ('public', 'Công khai'),
+        ('private', 'Riêng tư'),
+        ('only_me', 'Chỉ tôi'),
+    ]
+
     page = models.ForeignKey(Page, related_name='posts', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     content = models.TextField(blank=True)
     image = models.ImageField(upload_to='post_pics/', blank=True)
+    view_mode = models.CharField(max_length=10, choices=VIEW_CHOICES, default='public')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
+
     def __str__(self):
         return self.title
     
@@ -67,6 +74,30 @@ class Comment(models.Model):
     def is_reply(self):
         return self.parent_comment is not None
 
+class Share(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} shared {self.post.title}"
+
+class Reaction(models.Model):
+    REACTION_CHOICES = [
+        ('like', 'Thích'),
+        ('love', 'Yêu'),
+        ('sad', 'Buồn'),
+        ('angry', 'Giận dữ'),
+        ('wow', 'Wow'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+
+    class Meta:
+        unique_together = ('user', 'post')
+
 class PageAuthorization(models.Model):
     page = models.ForeignKey(Page, related_name='authorizations', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -78,7 +109,7 @@ class PageAuthorization(models.Model):
 
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
-    to_user = models.ForeignKey(User, related_name='received_request', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(User, related_name='received_requests', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     accepted = models.BooleanField(default=False)
 
@@ -95,7 +126,7 @@ class FriendShip(models.Model):
 
     def __str__(self):
         return f"{self.user1} is friends with {self.user2}"
-    
+
 class BlockedFriend(models.Model):
     blocker = models.ForeignKey(User, related_name="blocked_by", on_delete=models.CASCADE)
     blocked = models.ForeignKey(User, related_name="blocked_users", on_delete=models.CASCADE)
@@ -106,6 +137,14 @@ class BlockedFriend(models.Model):
 
     def __str__(self):
         return f'{self.blocker.username} blocks {self.blocked.username}'
+
+class Follow(models.Model):
+    follower = models.ForeignKey(User, related_name="following", on_delete=models.CASCADE)
+    following = models.ForeignKey(User, related_name="follower", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')
     
 class Group(models.Model):
     name = models.CharField(max_length=255)
