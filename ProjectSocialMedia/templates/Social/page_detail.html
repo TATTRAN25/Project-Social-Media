@@ -2,7 +2,23 @@
 
 {% block body_block %}
 <div class="custom-page-detail-container">
-    <h1 class="custom-title">{{ page.title }}</h1>
+    <h1 class="custom-title">{{ page.title }}
+        <form action="{% url 'SocialMedia:like_page' page.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            {% if user in page.likes.all %}
+                <!-- Nếu người dùng đã like, hiển thị biểu tượng dislike -->
+                <button type="submit" class="like-button" title="Dislike">
+                    <i class="fas fa-thumbs-down"></i>
+                </button>
+            {% else %}
+                <!-- Nếu người dùng chưa like, hiển thị biểu tượng like -->
+                <button type="submit" class="like-button" title="Like">
+                    <i class="fas fa-thumbs-up"></i>
+                </button>
+            {% endif %}
+        </form>
+        <span class="like-count">{{ page.likes.count }}</span>
+    </h1>
     <p class="custom-content"><strong>Nội Dung:</strong> {{ page.content }}</p>
     <p class="custom-date"><strong>Ngày Tạo:</strong> {{ page.created_at|date:"d/m/Y H:i" }}</p>
     <p class="custom-author"><strong>Tác Giả:</strong> {{ page.author.username }}</p>
@@ -29,7 +45,6 @@
         <ul class="custom-post-list">
             {% for post in posts %}
                 <li class="custom-post-item">
-                    
                     <h3><a href="{% url 'SocialMedia:post_detail' post.id %}" class="custom-post-link">{{ post.title }}</a></h3>
                     <div class="custom-post-image">
                         <img src="{{ post.image.url|default:'assets/images/default-image.jpg' }}" alt="{{ post.title }}" />

@@ -19,6 +19,8 @@
     <link rel="stylesheet" href="{% static 'assets/css/fontawesome.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/templatemo-stand-blog.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/owl.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/flex-slider.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
   </head>
 
   <body>
@@ -46,6 +48,12 @@
                     <span class="sr-only">(current)</span>
                   </a>
                 </li> 
+
+                <!-- Group link -->
+                {% url 'SocialMedia:group_list' as group_list_url %}
+                <li class="nav-item {% if request.path == group_list_url %}active{% endif %}">
+                  <a class="nav-link" href="{{ group_list_url }}">Group</a>
+                </li>
                 
                 <!-- About Us link -->
                 {% url 'SocialMedia:about' as about_url %}
@@ -158,5 +166,10 @@
               }
           }
       </script>
+      {% block script %}
+      <script>
+                   
+      </script>
+      {% endblock %}
   </body>
 </html>

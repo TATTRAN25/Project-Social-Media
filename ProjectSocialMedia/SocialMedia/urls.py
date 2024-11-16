@@ -6,7 +6,6 @@ app_name = "SocialMedia"
 urlpatterns = [
     # url home page
     path('index/', views.index, name='index'),
-    path('like/<int:post_id>/', views.like_post, name='like_post'),
     path('about/', views.about, name='about'),
     path('blog/', views.blog, name='blog'),
     path('post/<int:id>/', views.post_details, name='post_details'),
@@ -26,13 +25,20 @@ urlpatterns = [
     path('verify_otp/', views.verify_otp, name='verify_otp'),
     path('reset_password/<int:user_id>/', views.reset_password, name='reset_password'),
     path('change_password/', views.change_password, name='change_password'),
-    # url Pages
+    # url Social Page,Post
+    path('likes/', views.like_list, name='like_list'),
+    path('like/<int:post_id>/', views.like_post, name='like_post'),
+    path('post/<int:post_id>/react/', views.react_to_post, name='react_to_post'),
+    path('page/<int:page_id>/like/', views.like_page, name='like_page'),
     path('pages/<int:page_id>/', views.page_detail, name='page_detail'),
     path('pages/manage/', views.manage_page, name='manage_page'), 
     path('pages/manage/<int:page_id>/', views.manage_page, name='manage_page'), 
     path('pages/<int:page_id>/posts/manage/', views.manage_post, name='manage_post'),
     path('posts/manage/<int:post_id>/', views.manage_post, name='manage_post_edit'),   
     path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
+    path('share/<int:post_id>/', views.share_post, name='new_share'), 
+    path('share/<int:share_id>/<int:post_id>/', views.share_post, name='share_post'),
+    path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
     # url friend
     path('friends_list/', views.friends_list, name='friends_list'),
     path('search-friends/', views.search_friends, name='search_friends'),
@@ -46,4 +52,16 @@ urlpatterns = [
     path('block_list/unblock/<int:user_id>/', views.unblock, name='unblock'),
     path('follow/<int:user_id>/', views.follow_user, name='follow_user'),
     path('unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
+    # url group
+    path('groups/', views.group_list, name='group_list'),
+    path('groups/create/', views.create_group, name='create_group'),
+    path('groups/update/<int:pk>/', views.update_group, name='update_group'),
+    path('groups/delete/<int:pk>/', views.delete_group, name='delete_group'),
+    path('groups/<int:pk>/', views.group_detail, name='group_detail'),
+    path('groups/<int:pk>/join/', views.join_group, name='join_group'),
+    path('groups/<int:group_id>/create_post/', views.create_post, name='create_post'),
+    path('posts/approve/<int:post_id>/', views.approve_post, name='approve_post'),
+    path('posts/reject/<int:post_id>/', views.reject_post, name='reject_post'),
+    path('group/<int:pk>/approve/', views.approve_join_request, name='approve_join_request'),
+    path('group/<int:pk>/reject/', views.reject_join_request, name='reject_join_request'),
 ]

@@ -1,0 +1,15 @@
+<!-- SocialMedia/confirm_delete_group.html -->
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+    <h2>Xóa Group</h2>
+    <p>Bạn có chắc chắn muốn xóa group "{{ group.name }}" không?</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Xóa</button>
+        <a href="{% url 'SocialMedia:group_list' %}" class="btn btn-secondary">Hủy</a>
+    </form>
+</div>
+{% endblock %}

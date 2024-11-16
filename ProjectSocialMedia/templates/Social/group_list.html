@@ -1,0 +1,21 @@
+<!-- SocialMedia/group_list.html -->
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+    <h2>Danh sách Groups</h2>
+
+    <a href="{% url 'SocialMedia:create_group' %}" class="btn btn-primary mb-3">Tạo Group</a>
+
+    <div id="group-list">
+        {% for group in groups %}
+            <div class="group-item">
+                <h5><a href="{% url 'SocialMedia:group_detail' pk=group.pk %}">{{ group.name }}</a></h5>
+                <p>{{ group.description }}</p>
+            </div>
+        {% empty %}
+            <p>Chưa có group nào.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,178 @@
+/* Kiểu dáng cho phần bình luận */
+.comments-section-container {
+    margin-top: 40px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* Định dạng cho tiêu đề của phần bình luận */
+.comments-section h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Định dạng cho từng bình luận */
+.comments-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.comment {
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.comment strong {
+    color: #007bff;
+}
+
+/* Định dạng thời gian cho mỗi bình luận */
+.comment .timesince {
+    font-style: italic;
+    color: #666;
+}
+
+/* Định dạng form gửi bình luận */
+.comments-section form {
+    margin-top: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.comments-section form button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.comments-section form button:hover {
+    background-color: #0056b3;
+}
+
+/* Định dạng cho thông báo không có bình luận */
+.comments-section p {
+    color: #888;
+}
+
+/* Kiểu dáng cho phần emoji reactions */
+.comment-reactions {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.reaction-btn {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.reaction-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.reply-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.reply-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Kiểu dáng cho form phản hồi */
+.reply-form {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.reply-form textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.reply-form button {
+    margin-top: 10px;
+}
+
+/* Định dạng cho các biểu tượng react */
+.reaction-btn:focus {
+    outline: none;
+}
+
+/* Các button biểu tượng reaction */
+.reaction-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+/* Phần hiển thị các emoji khi rê chuột */
+.emoji-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Các emoji sẽ được ẩn đi khi chưa rê chuột vào */
+.emoji-options {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 30px;  /* Điều chỉnh vị trí của các emoji nếu cần */
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Khi rê chuột vào biểu tượng chính (like) thì hiển thị các emoji */
+.emoji-wrapper:hover .emoji-options {
+    display: block;
+}
+
+/* Emoji đã chọn sẽ sáng lên */
+.reaction-btn.selected {
+    color: #f39c12; /* Ví dụ: Màu vàng khi chọn */
+}
+
+.delete-button {
+    color: red;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.delete-button:hover {
+    color: darkred;
+}

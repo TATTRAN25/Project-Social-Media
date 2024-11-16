@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import UserProfileInfo, Page, Post
+from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, help_text='Mật khẩu phải có ít nhất 8 ký tự.')
@@ -64,7 +64,7 @@ class PageForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image'] 
+        fields = ['title', 'content', 'image', 'view_mode'] 
         widgets = {
             'content': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Nội dung bài viết...'}),
         }
@@ -72,4 +72,35 @@ class PostForm(forms.ModelForm):
             'title': 'Tiêu đề',
             'content': 'Nội dung',
              'image' : 'Hình ảnh',
+            'view_mode': 'Chế độ xem',
         }
+
+class ShareForm(forms.ModelForm):
+    class Meta:
+        model = Share
+        fields = ['comment']  
+        widgets = {
+            'comment': forms.Textarea(attrs={
+                'placeholder': 'Nhập bình luận...',
+                'rows': 3,
+                'class': 'form-control'
+            }),
+        }
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={'class': 'editable medium-editor-textarea', 'rows': 1, 'style': 'resize: none; height: auto;', 'placeholder': 'Viết bình luận...'}),
+        }
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ['name', 'description', 'is_private']
+
+class GroupPostForm(forms.ModelForm):
+    class Meta:
+        model = GroupPost
+        fields = ['title', 'content']

@@ -1,0 +1,16 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+  <div class="container">
+    <h1>Xác nhận xóa nhóm</h1>
+    <p>Bạn có chắc chắn muốn xóa nhóm "{{ group.name }}" không?</p>
+    
+    <p>Nhóm này sẽ bị xóa vĩnh viễn và không thể khôi phục lại.</p>
+
+    <form method="POST">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Xóa nhóm</button>
+      <a href="{% url 'SocialMedia:group_detail' pk=group.pk %}" class="btn btn-secondary">Hủy bỏ</a>
+    </form>
+  </div>
+{% endblock %}
