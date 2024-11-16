@@ -14,6 +14,7 @@ from django.utils import timezone
 from .forms import UserRegistrationForm, UserProfileInfoForm, PageForm, PostForm
 from .models import UserProfileInfo, PasswordResetOTP, FriendRequest, FriendShip, BlockedFriend,Page, Post, Follow
 from django.db.models import Q
+from django.template.loader import render_to_string
 
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -416,34 +417,54 @@ def friends_list(request):
 
 # Search friend
 @login_required
-def search_friends(request):        
+def search_friends(request):
     # Get all friendships involving the logged-in user
     friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
     
     # Create a dictionary to store friendship status (True if the user is a friend)
     friend_status = {}
     for friendship in friend_ships:
-        # Store friendship status for both directions
         if friendship.user1.id == request.user.id:
-            friend_status[friendship.user2.id] = True
+            friend_status[friendship.user2.id] = 'friend'
         elif friendship.user2.id == request.user.id:
-            friend_status[friendship.user1.id] = True
+            friend_status[friendship.user1.id] = 'friend'
 
     # Check for pending friend requests sent by the current user or received by the current user
     pending_requests = {}
     sent_requests = FriendRequest.objects.filter(from_user=request.user, accepted=False)
-
-    # Add sent requests to the pending_requests dictionary (status 'sent')
     for request_sent in sent_requests:
         pending_requests[request_sent.to_user.id] = 'sent'
 
-    query = request.GET.get('friend_name')
+    # Search query
+    query = request.GET.get('friend_name', '').strip()
     results = []
-    if query:
-        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
-        print(friend_status)
 
-    return render(request, 'friend/search_friends.html', {'results':results, 'friend_status':friend_status, "pending_requests":pending_requests})
+    if query:
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        suggestions = []
+        for user in results:
+            status = ''
+            if user.id in friend_status:
+                status = 'friend'
+            elif user.id in pending_requests:
+                status = 'pending'
+
+            suggestions.append({
+                'id': user.id,
+                'username': user.username,
+                'status': status,
+            })
+            return JsonResponse({'suggestions': suggestions})
+
+    # Render the regular template when it's not an AJAX request
+    return render(request, 'friend/search_friends.html', {
+        'results': results,
+        'friend_status': friend_status,
+        'pending_requests': pending_requests,
+    })
+
 
 # Delete friend
 def unfriend(request, friend_id):
