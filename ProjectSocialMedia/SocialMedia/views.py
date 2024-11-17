@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q,Count
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -441,34 +441,47 @@ def delete_comment(request, comment_id):
     # Chuyển hướng về trang chi tiết bài viết hoặc trang danh sách bình luận
     return redirect('SocialMedia:post_detail', post_id=comment.post.id)
 
+@property
+def total_interactions(self):
+    return self.likes.count() + self.comments.count()
+
 def index(request):
     if request.user.is_authenticated:
         following_users = request.user.following.values_list('following', flat=True)
         friends = request.user.friendships1.values_list('user2', flat=True).union(request.user.friendships2.values_list('user1', flat=True))
+        user_ids = [request.user.id] + list(following_users) + list(friends)
 
-        posts = Post.objects.filter(author__in=[request.user.id] + list(following_users) + list(friends)).prefetch_related('likes').order_by('-created_at')
+        posts = Post.objects.filter(author__in=user_ids).prefetch_related('likes').order_by('-created_at')
 
         # Lấy thông tin chia sẻ
-        shared_posts = Share.objects.filter(user__in=[request.user.id] + list(following_users) + list(friends)).select_related('post').order_by('-created_at')
+        shared_posts = Share.objects.filter(user__in=user_ids).select_related('post').order_by('-created_at')
 
-        # Tạo một danh sách để lưu thông tin chia sẻ
-        shared_info = []
-        for share in shared_posts:
-            shared_info.append({
+        shared_info = [
+            {
                 'post_id': share.post.id,
                 'username': share.user.username,
                 'comment': share.comment
-            })
+            }
+            for share in shared_posts
+        ]
 
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
 
+        # Lọc bài viết có thể quan tâm dựa trên tương tác
+        recommended_posts = Post.objects.filter(author__in=user_ids).annotate(
+            total_interactions=Count('likes') + Count('comments')
+        ).order_by('-total_interactions')[:5] 
     else:
         liked_post_ids = set()
         posts = Post.objects.filter(view_mode='public').order_by('-created_at')
+        recommended_posts = Post.objects.filter(view_mode='public').annotate(
+            total_interactions=Count('likes') + Count('comments')
+        ).order_by('-total_interactions')[:5]
 
     return render(request, 'home/index.html', {
         'posts': posts,
+        'recommended_posts': recommended_posts,
         'liked_post_ids': liked_post_ids,
         'shared_info': shared_info,
     })
