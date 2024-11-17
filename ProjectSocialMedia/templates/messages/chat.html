@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <title>Chat với {{ receiver.username }}</title>
+    <link rel="stylesheet" href="{% static 'assets/css/chat.css' %}">
+    <script>
+        let chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/{{ receiver.id }}/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#chat-log').value += (data.sender + ': ' + data.message + '\n');
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // Enter key
+                const messageInputDom = document.querySelector('#chat-message-input');
+                const message = messageInputDom.value;
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                messageInputDom.value = '';
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="friend-list">
+            <h3>Bạn bè</h3>
+            <ul>
+                {% for friend in friends %}
+                    <li>
+                        <a href="{% url 'SocialMedia:chat_view' receiver_id=friend.id %}">
+                            {{ friend.username }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="chat-window">
+            <h2>Nhắn tin với {{ receiver.username }}</h2>
+            <textarea id="chat-log" cols="30" rows="10" readonly></textarea>
+            <input id="chat-message-input" type="text" size="100" placeholder="Nhập tin nhắn...">
+        </div>
+    </div>
+</body>
+</html>

@@ -42,6 +42,7 @@ from .models import (
     Reaction,
     Share,
     Follow,
+    Message,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -1033,3 +1034,35 @@ def reject_join_request(request, pk):
         messages.error(request, "Bạn không có quyền từ chối yêu cầu tham gia nhóm này.")
     
     return redirect('SocialMedia:user_profile')
+
+def chat_view(request, receiver_id):
+    # Lấy thông tin người nhận
+    receiver = get_object_or_404(User, id=receiver_id)
+    
+    # Lấy danh sách bạn bè
+    friend_ids = FriendShip.objects.filter(
+        Q(user1=request.user) | Q(user2=request.user)
+    ).values_list('user1', 'user2')
+
+    # Chọn các ID bạn bè
+    friends = set()
+    for user1, user2 in friend_ids:
+        if user1 != request.user.id:
+            friends.add(user1)
+        if user2 != request.user.id:
+            friends.add(user2)
+
+    # Lấy thông tin người bạn
+    friend_users = User.objects.filter(id__in=friends)
+
+    # Lấy tin nhắn giữa người dùng và người nhận
+    messages = Message.objects.filter(
+        (Q(sender=request.user) & Q(receiver=receiver)) |
+        (Q(sender=receiver) & Q(receiver=request.user))
+    ).order_by('timestamp')
+
+    return render(request, 'messages/chat.html', {
+        'receiver': receiver,
+        'messages': messages,
+        'friends': friend_users,
+    })

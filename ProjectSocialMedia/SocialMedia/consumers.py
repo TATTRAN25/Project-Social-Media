@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-
+from .models import Message
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.channel_layer.group_add(
@@ -66,4 +66,57 @@ class PageLikeNotificationConsumer(AsyncWebsocketConsumer):
             'page_id': event['page_id'],
             'is_liked': event['is_liked'],
             'likes_count': event['likes_count'],
+        }))
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.receiver_id = self.scope['url_route']['kwargs']['receiver_id']
+        self.room_group_name = f'chat_{self.receiver_id}'
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message = data['message']
+        sender_id = self.scope["user"].id
+        receiver_id = self.receiver_id
+
+        # Save message to database
+        msg = await Message.objects.create(sender_id=sender_id, receiver_id=receiver_id, content=message)
+
+        # Broadcast message to room group
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': msg.content,
+                'sender': sender_id,
+                'timestamp': str(msg.timestamp)
+            }
+        )
+
+    async def chat_message(self, event):
+        message = event['message']
+        sender = event['sender']
+        timestamp = event['timestamp']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'message': message,
+            'sender': sender,
+            'timestamp': timestamp,
         }))
