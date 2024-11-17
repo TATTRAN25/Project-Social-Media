@@ -40,6 +40,7 @@ from .models import (
     Reaction,
     Share,
     Follow,
+    Notification,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -596,7 +597,7 @@ def send_friend_request(request, user_id):
 def decline_friend_request(request, request_id):
     friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
     friend_request.delete()
-    return redirect('SocialMedia:pending_friend_requests')
+    return redirect('SocialMedia:notifications')
 
 # Add friend
 @login_required
@@ -615,14 +616,7 @@ def accept_friend_request(request, request_id):
 
         # Create a Friendship record
         FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
-
     return redirect('SocialMedia:friends_list')
-
-# Display pending friend requests for the user
-@login_required
-def pending_friend_requests(request):
-    requests = FriendRequest.objects.filter(to_user=request.user, accepted=False)
-    return render(request, 'friend/pending_requests.html', {'requests': requests})
 
 # List friend
 @login_required
@@ -672,19 +666,15 @@ def search_friends(request):
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         suggestions = []
-        for user in results:
-            status = ''
-            if user.id in friend_status:
-                status = 'friend'
-            elif user.id in pending_requests:
-                status = 'pending'
+        users = User.objects.exclude(id=request.user.id)
+        for user in users:
+            if user.id not in friend_status:
+                suggestions.append({
+                    'id': user.id,
+                    'username': user.username,
+                })
 
-            suggestions.append({
-                'id': user.id,
-                'username': user.username,
-                'status': status,
-            })
-            return JsonResponse({'suggestions': suggestions})
+        return JsonResponse({'suggestions': suggestions})
 
     # Render the regular template when it's not an AJAX request
     return render(request, 'friend/search_friends.html', {
@@ -739,10 +729,28 @@ def follow_user(request, user_id):
     Follow.objects.create(follower=request.user, following=user_to_follow)
     return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
+# Unfollow
 def unfollow_user(request, user_id):
     user_to_follow = get_object_or_404(User, id=user_id)
     Follow.objects.filter(follower=request.user, following=user_to_follow).delete()
     return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+
+# Send notification to follower
+@login_required
+def notification_view(request):
+    # Fetch notifications for the logged-in user
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    friend_requests = FriendRequest.objects.filter(to_user=request.user, accepted=False).order_by('-created_at')
+    return render(request, 'friend/notifications.html', {'notifications': notifications, 'friend_requests':friend_requests})
+
+@login_required
+def mark_as_read(request, notification_id):
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.mark_as_read()
+    except Notification.DoesNotExist:
+        pass
+    return redirect('SocialMedia:notifications')
 
 def group_list(request):
     groups = Group.objects.all()  # Lấy tất cả nhóm từ cơ sở dữ liệu
