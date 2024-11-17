@@ -41,6 +41,7 @@ from .models import (
     Share,
     Follow,
     Notification,
+    Tag
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -307,6 +308,10 @@ def manage_post(request, post_id=None, page_id=None):
             
             new_post.view_mode = form.cleaned_data['view_mode']  
             new_post.save()
+
+            tagged_user =  form.cleaned_data['tagged_users']
+            Tag.objects.create(post=new_post, tagged_user=tagged_user)
+
             messages.success(request, f'Bài viết đã được {action.lower()} thành công!')
             return redirect('SocialMedia:post_detail', post_id=new_post.id)
         else:
@@ -666,8 +671,7 @@ def search_friends(request):
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         suggestions = []
-        users = User.objects.exclude(id=request.user.id)
-        for user in users:
+        for user in results:
             if user.id not in friend_status:
                 suggestions.append({
                     'id': user.id,

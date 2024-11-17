@@ -158,6 +158,11 @@ class Notification(models.Model):
     def mark_as_read(self):
         self.is_read = True
         self.save()
+
+class Tag(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='tags')
+    tagged_user = models.ForeignKey(User, on_delete=models.CASCADE)
+    
     
 class Group(models.Model):
     name = models.CharField(max_length=255)

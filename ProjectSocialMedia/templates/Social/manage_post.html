@@ -33,6 +33,12 @@
         </div>
 
         <div class="form-group">
+            {{ form.tagged_users.label }}
+            {{ form.tagged_users }}
+            {{ form.tagged_users.errors }}
+        </div>
+
+        <div class="form-group">
             {{ form.image.label }}
             {{ form.image }}
             {{ form.image.errors }}
