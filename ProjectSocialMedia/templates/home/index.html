@@ -113,6 +113,14 @@
                                           </button>
                                           <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
                                       </div>
+                                      {% for share in shared_info %}
+                                      {% if share.post_id == post.id %}
+                                      <div>
+                                          Bài viết đã được chia sẻ bởi: {{ share.username }} - Bình luận: "{{ share.comment }}"
+                                          <br>
+                                      </div>
+                                      {% endif %}
+                                      {% endfor %}
                                   </div>
                               </div>
                               {% endfor %}
