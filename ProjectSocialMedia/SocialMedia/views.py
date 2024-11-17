@@ -42,6 +42,7 @@ from .models import (
     Reaction,
     Share,
     Follow,
+    Message,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -1033,3 +1034,24 @@ def reject_join_request(request, pk):
         messages.error(request, "Bạn không có quyền từ chối yêu cầu tham gia nhóm này.")
     
     return redirect('SocialMedia:user_profile')
+
+def send_message(request):
+    if request.method == 'POST' and request.user.is_authenticated:
+        receiver_id = request.POST.get('receiver_id')
+        content = request.POST.get('content')
+        
+        # Tạo và lưu tin nhắn
+        message = Message(sender=request.user, receiver_id=receiver_id, content=content)
+        message.save()
+        
+        return JsonResponse({'status': 'success', 'message_id': message.id})
+
+def get_messages(request, user_id):
+    if request.user.is_authenticated:
+        messages = Message.objects.filter(
+            (models.Q(sender=request.user) & models.Q(receiver_id=user_id)) |
+            (models.Q(receiver=request.user) & models.Q(sender_id=user_id))
+        ).order_by('timestamp')
+
+        messages_list = [{'sender': msg.sender.username, 'content': msg.content, 'timestamp': msg.timestamp} for msg in messages]
+        return JsonResponse({'messages': messages_list})

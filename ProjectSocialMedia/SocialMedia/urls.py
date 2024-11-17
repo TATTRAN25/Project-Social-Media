@@ -64,4 +64,7 @@ urlpatterns = [
     path('posts/reject/<int:post_id>/', views.reject_post, name='reject_post'),
     path('group/<int:pk>/approve/', views.approve_join_request, name='approve_join_request'),
     path('group/<int:pk>/reject/', views.reject_join_request, name='reject_join_request'),
+    # url message
+    path('send-message/', views.send_message, name='send_message'),
+    path('get-messages/<int:user_id>/', views.get_messages, name='get_messages'),
 ]
