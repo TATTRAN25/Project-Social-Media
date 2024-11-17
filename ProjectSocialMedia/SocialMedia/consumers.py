@@ -1,3 +1,9 @@
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ProjectSocialMedia.settings")
+django.setup()
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Message
