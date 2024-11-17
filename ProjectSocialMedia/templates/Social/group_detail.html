@@ -1,75 +1,208 @@
 <!-- SocialMedia/group_detail.html -->
-{% extends "base.html" %}
-
-{% block body_block %}
+{% extends "base.html" %} {% block body_block %}
 <div class="container mt-5">
+  <h2>{{ group.name }}</h2>
+  <p>{{ group.description }}</p>
+  <p><strong>Số thành viên:</strong> {{ group.members.count }}</p>
+  
+  <!-- Hiển thị nút quản lý thành viên nếu người dùng là Admin -->
+  {% if is_admin or user == group.creator %}
+  <a href="{% url 'SocialMedia:manage_group_members' group.id %}" class="btn btn-warning">Quản lý thành viên</a>
+  {% endif %}
 
-    <!-- Hiển thị thông báo -->
-    {% comment %} {% if messages %}
-        <div class="alert alert-info">
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        </div>
-    {% endif %} {% endcomment %}
+  {% if user == group.creator %} {% if join_requests %}
+  <div class="join-requests">
+    <h3>Yêu cầu tham gia nhóm:</h3>
+    <ul>
+      {% for request in join_requests %}
+      <li>
+        {{ request.user.username }} muốn tham gia nhóm này.
+        <a
+          href="{% url 'SocialMedia:approve_join_request' request.pk %}"
+          class="btn btn-success"
+          >Phê duyệt</a
+        >
+        <a
+          href="{% url 'SocialMedia:reject_join_request' request.pk %}"
+          class="btn btn-danger"
+          >Từ chối</a
+        >
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <p>Không có yêu cầu tham gia nhóm nào.</p>
+  {% endif %} {% endif %}
 
-    <h2>{{ group.name }}</h2>
-    <p>{{ group.description }}</p>
-    <p><strong>Số thành viên:</strong> {{ group.members.count }}</p>
-
-    {% if user == group.creator %}
-    {% if join_requests %}
-    <div class="join-requests">
-        <h3>Yêu cầu tham gia nhóm:</h3>
-        <ul>
-            {% for request in join_requests %}
-            <li>
-                {{ request.user.username }} muốn tham gia nhóm này.
-                <a href="{% url 'SocialMedia:approve_join_request' request.pk %}" class="btn btn-success">Phê duyệt</a>
-                <a href="{% url 'SocialMedia:reject_join_request' request.pk %}" class="btn btn-danger">Từ chối</a>
-            </li>
-            {% endfor %}
-        </ul>
+  <!-- Hiển thị nút rời nhóm cho thành viên (trừ người tạo nhóm) -->
+  {% if is_member and user != group.creator %}
+  <a href="{% url 'SocialMedia:leave_group' group.id %}" class="btn btn-warning"
+    >Rời nhóm</a
+  >
+  {% endif %} {% if user == group.creator %}
+  <h4>Bài viết đang chờ duyệt (Pending)</h4>
+  {% if posts %}
+  <div class="pending-posts card mb-3">
+    {% for post in posts %} {% if post.status == 'pending' %}
+    <div class="pending-post">
+      <strong>{{ post.title }}</strong><br />
+      {{ post.content }}<br />
+      Trạng thái: {{ post.get_status_display }}
+      <br />
+      <a
+        href="{% url 'SocialMedia:approve_group_post' post.id %}"
+        class="btn btn-success"
+        >Phê duyệt</a
+      >
+      <a
+        href="{% url 'SocialMedia:reject_group_post' post.id %}"
+        class="btn btn-danger"
+        >Từ chối</a
+      >
     </div>
-    {% else %}
-    <p>Không có yêu cầu tham gia nhóm nào.</p>
-    {% endif %}
-    {% endif %}
+    {% endif %} {% endfor %}
+  </div>
+  {% else %}
+  <p>Chưa có bài viết chờ duyệt.</p>
+  {% endif %} {% endif %}
 
-    <!-- Hiển thị nút rời nhóm cho thành viên (trừ người tạo nhóm) -->
-    {% if is_member and user != group.creator %}
-        <a href="{% url 'SocialMedia:leave_group' group.id %}" class="btn btn-warning">Rời nhóm</a>
-    {% endif %}
+  <h4>Posts</h4>
+  {% if posts %}
+  <div class="approved-posts">
+    {% for post in posts %} {% if post.status == 'approved' %}
+    <div class="approved-post card mb-3">
+      <div class="card-body">
+        <!-- Nút Chỉnh sửa và Xóa -->
+        {% if post.author == user or user == post.group.creator %}
+        <a
+          href="{% url 'SocialMedia:edit_group_post' post.id %}"
+          class="btn btn-link btn-sm"
+          >Chỉnh sửa</a
+        >
+        <a
+          href="{% url 'SocialMedia:delete_group_post' post.id %}"
+          class="btn btn-danger btn-sm"
+          onclick="return confirm('Bạn có chắc chắn muốn xóa bài viết này không?');"
+          >X</a
+        >
+        {% endif %}
+        <!-- Thông tin người tạo và ngày đăng -->
+        <p>
+          <strong>Người tạo: </strong>{{ post.author.username }}
+          <small class="text-muted">{{ post.created_at|timesince }} ago</small>
+        </p>
 
-    <h4>Bài viết</h4>
-    {% if posts %}
-        <ul>
-            {% for post in posts %}
-                <li>
-                    <strong>{{ post.title }}</strong><br>
-                    {{ post.content }}<br>
-                    Trạng thái: {{ post.get_status_display }}
-                    {% if post.status == 'pending' %}
-                        {% if user == post.group.creator %}
-                            <a href="{% url 'SocialMedia:approve_post' post.id %}" class="btn btn-success">Phê duyệt</a>
-                            <a href="{% url 'SocialMedia:reject_post' post.id %}" class="btn btn-danger">Từ chối</a>
-                        {% endif %}
-                    {% endif %}
-                </li>
+        <!-- Tiêu đề bài viết -->
+        <h5 class="card-title">{{ post.title }}</h5>
+
+        <!-- Nội dung bài viết -->
+        <p class="card-text">{{ post.content }}</p>
+
+        <h5>Bình luận</h5>
+        <form method="post">
+          {% csrf_token %}
+          <textarea
+            class="form-control"
+            name="content"
+            rows="3"
+            placeholder="Viết bình luận..."
+          ></textarea>
+          <input type="hidden" name="group_post_id" value="{{ post.id }}" />
+          <button type="submit" class="btn btn-primary mt-2">
+            Gửi bình luận
+          </button>
+        </form>
+
+        <!-- Hiển thị bình luận -->
+        {% for comment in post.comments.all %} {% if comment.parent_comment is None %}
+        <!-- Bình luận gốc -->
+        <div class="comment mt-3">
+          <strong>{{ comment.author.username }}</strong>
+          <p>{{ comment.content }}</p>
+          <small class="text-muted"
+            >{{ comment.created_at|timesince }} ago</small
+          >
+
+          <!-- Nút chỉnh sửa và xóa bình luận -->
+          {% if comment.author == user or user.is_staff %}
+          <a
+            href="{% url 'SocialMedia:edit_group_comment' comment.id %}"
+            class="btn btn-secondary btn-sm mt-2"
+            >Chỉnh sửa</a
+          >
+          <a
+            href="{% url 'SocialMedia:delete_group_comment' comment.id %}"
+            class="btn btn-danger btn-sm mt-2"
+            onclick="return confirm('Bạn có chắc chắn muốn xóa bình luận này không?');"
+            >Xóa</a
+          >
+          {% endif %}
+
+          <!-- Nút phản hồi bình luận -->
+          {% if user.is_authenticated %}
+          <a
+            href="{% url 'SocialMedia:reply_group_comment' comment.id %}"
+            class="btn btn-info btn-sm mt-2"
+            >Phản hồi</a
+          >
+          {% endif %}
+
+          <!-- Hiển thị các phản hồi -->
+          <div class="replies" style="margin-left: 20px">
+            {% for reply in comment.replies.all %}
+            <div class="reply mt-2">
+              <strong>{{ reply.author.username }}</strong>
+              <p>{{ reply.content }}</p>
+              <small class="text-muted"
+                >{{ reply.created_at|timesince }} ago</small
+              >
+
+              <!-- Các nút xóa và chỉnh sửa cho phản hồi -->
+              {% if reply.author == user or user.is_staff %}
+              <a
+                href="{% url 'SocialMedia:edit_group_comment' reply.id %}"
+                class="btn btn-secondary btn-sm mt-2"
+                >Chỉnh sửa</a
+              >
+              <a
+                href="{% url 'SocialMedia:delete_group_comment' reply.id %}"
+                class="btn btn-danger btn-sm mt-2"
+                onclick="return confirm('Bạn có chắc chắn muốn xóa phản hồi này không?');"
+                >Xóa</a
+              >
+              {% endif %}
+            </div>
+            {% empty %}
+            <p>Chưa có phản hồi nào.</p>
             {% endfor %}
-        </ul>
-    {% else %}
-        <p>Chưa có bài viết nào.</p>
-    {% endif %}
+          </div>
+        </div>
+        {% endif %} {% endfor %}
+      </div>
+    </div>
+    {% endif %} {% endfor %}
+  </div>
+  {% else %}
+  <p>Chưa có bài viết nào được phê duyệt.</p>
+  {% endif %}
 
-     <!-- Hiển thị nút đăng bài cho thành viên -->
-    {% if is_member %}
-        <a href="{% url 'SocialMedia:create_post' group.id %}" class="btn btn-primary">Đăng bài</a>
-    {% endif %}
+  <!-- Hiển thị nút đăng bài cho thành viên -->
+  {% if is_member or user == group.creator %}
+  <a
+    href="{% url 'SocialMedia:create_group_post' group.id %}"
+    class="btn btn-primary"
+    >Đăng bài</a
+  >
+  {% endif %}
 
-    <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
-    {% if not is_member and user != group.creator %}
-        <a href="{% url 'SocialMedia:join_group' pk=group.pk %}" class="btn btn-primary">Tham gia nhóm</a>
-    {% endif %}
+  <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
+  {% if not is_member and user != group.creator %}
+  <a
+    href="{% url 'SocialMedia:join_group' pk=group.pk %}"
+    class="btn btn-primary"
+    >Tham gia nhóm</a
+  >
+  {% endif %}
 </div>
 {% endblock %}

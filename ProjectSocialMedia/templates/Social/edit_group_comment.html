@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block body_block %}
+  <div class="container mt-5">
+    <h2>Chỉnh sửa bình luận</h2>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+    </form>
+  </div>
+{% endblock %}

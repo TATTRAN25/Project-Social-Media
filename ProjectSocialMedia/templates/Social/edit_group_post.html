@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+    <h2>Chỉnh sửa bài viết</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        <a href="{% url 'SocialMedia:group_detail' pk=post.group.pk %}" class="btn btn-secondary">Hủy</a>
+    </form>
+</div>
+{% endblock %}

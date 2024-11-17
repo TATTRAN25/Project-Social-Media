@@ -166,13 +166,6 @@
         {% else %}
             <p>Chưa có bình luận nào.</p>
         {% endif %}
-        
-        <h3>Thêm bình luận</h3>
-        <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" name="comment" class="btn btn-primary">Gửi Bình Luận</button>
-        </form>
     </div>
 </div>
 

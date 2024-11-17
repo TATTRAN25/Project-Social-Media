@@ -60,19 +60,6 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
-    
-class Comment(models.Model):
-    post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = models.TextField()
-    created_at = models.DateTimeField(default=timezone.now)
-    parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
-
-    def is_reply(self):
-        return self.parent_comment is not None
 
 class Share(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -151,7 +138,7 @@ class Group(models.Model):
     description = models.TextField()
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_groups')
     is_private = models.BooleanField(default=False)
-    members = models.ManyToManyField(User, related_name='group_members', blank=True)  # Các thành viên của nhóm
+    members = models.ManyToManyField(User, related_name='group_members', through='GroupMembership', blank=True)
 
     def __str__(self):
         return self.name
@@ -186,3 +173,38 @@ class JoinRequest(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.group.name} ({self.status})'
+    
+class Comment(models.Model):
+    post = models.ForeignKey(Post, related_name='comments', on_delete=models.SET_NULL, null=True, blank=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
+
+    def is_reply(self):
+        return self.parent_comment is not None
+    
+class GroupComment(models.Model):
+    group_post = models.ForeignKey(GroupPost, related_name='comments', on_delete=models.CASCADE, null=True, blank=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
+
+    def is_reply(self):
+        return self.parent_comment is not None
+    
+class GroupMemberShip(models.Model):
+    group = models.ForeignKey(Group, related_name='memberships', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name='group_memberships', on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=[('member', 'Member'), ('admin', 'Admin')], default='member')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+
