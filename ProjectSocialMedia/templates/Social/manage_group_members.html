@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block body_block %}
+<div class="container mt-5">
+  <h2>Quản lý thành viên của nhóm {{ group.name }}</h2>
+
+  <ul class="list-group">
+    {% for member in members %}
+      <li class="list-group-item">
+        <strong>{{ member.user.username }}</strong> - {{ member.get_role_display }}
+        
+        <!-- Các thao tác với thành viên -->
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="user_id" value="{{ member.user.id }}">
+          {% if member.role == 'admin' %}
+          <button type="submit" name="action" value="demote" class="btn btn-secondary btn-sm">Hạ cấp</button>
+          {% else %}
+          <button type="submit" name="action" value="promote" class="btn btn-primary btn-sm">Thăng cấp</button>
+          {% endif %}
+          <button type="submit" name="action" value="remove" class="btn btn-danger btn-sm">Xóa</button>
+        </form>
+      </li>
+    {% empty %}
+      <li class="list-group-item">Không có thành viên nào trong nhóm này.</li>
+    {% endfor %}
+  </ul>
+
+  <a href="{% url 'SocialMedia:group_detail' group.id %}" class="btn btn-secondary mt-3">Trở lại</a>
+</div>
+{% endblock %}

@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -22,6 +22,7 @@ from .forms import (
     CommentForm,
     GroupForm,
     GroupPostForm,
+    GroupCommentForm,
     ShareForm,
 )
 from .models import (
@@ -35,10 +36,12 @@ from .models import (
     Comment,
     Group,
     GroupPost,
+    GroupComment,
     JoinRequest,
     Reaction,
     Share,
     Follow,
+    GroupMemberShip,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -773,21 +776,142 @@ def delete_group(request, pk):
     # Nếu không phải POST, trả về trang xác nhận xóa (confirmation)
     return render(request, 'Social/confirm_delete_group.html', {'group': group})
 
+# Kiểm tra quyền của người dùng trong nhóm
+def check_group_permission(user, group, required_role):
+    try:
+        group_member = GroupMemberShip.objects.get(user=user, group=group)
+        return group_member.role == required_role
+    except GroupMemberShip.DoesNotExist:
+        return False
+
 @login_required
 def group_detail(request, pk):
     group = get_object_or_404(Group, pk=pk)
     posts = GroupPost.objects.filter(group=group).order_by('-created_at')
-    # Lọc yêu cầu tham gia nhóm chỉ cho nhóm này
     join_requests = JoinRequest.objects.filter(group=group, status='pending')
-    # Kiểm tra xem người dùng có phải là thành viên của nhóm hay không
-    is_member = request.user in group.members.all()
+    is_member = group.members.filter(id=request.user.id).exists()
+    is_admin = check_group_permission(request.user, group, 'admin')
+
+    # Xử lý việc gửi bình luận
+    if request.method == 'POST':
+        form = GroupCommentForm(request.POST)
+        if form.is_valid():
+            group_post_id = request.POST.get('group_post_id')
+            group_post = get_object_or_404(GroupPost, id=group_post_id)
+            comment = form.save(commit=False)
+            comment.group_post = group_post
+            comment.author = request.user
+            comment.save()
+            return redirect('SocialMedia:group_detail', pk=group.id)
+
+    else:
+        form = GroupCommentForm()
 
     return render(request, 'Social/group_detail.html', {
         'group': group,
         'posts': posts,
         'is_member': is_member,
+        'is_admin': is_admin,
         'join_requests': join_requests,
+        'form': form,
     })
+
+# View quản lý thành viên (admin)
+@login_required
+def manage_group_members(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    try:
+        # Lấy thông tin thành viên của nhóm
+        group_member = GroupMemberShip.objects.get(group=group, user=request.user)
+    except GroupMemberShip.DoesNotExist:
+        # Nếu người dùng không phải là thành viên của nhóm
+        return HttpResponseForbidden("Bạn không phải là thành viên của nhóm này.")
+
+    if not (group.creator == request.user or group_member.role == 'admin' or request.user.is_staff):
+        return HttpResponseForbidden("Bạn không có quyền quản lý thành viên trong nhóm này.")
+
+    # members = group.members.all()
+    members = GroupMemberShip.objects.filter(group=group)
+
+    # Xử lý hành động thăng cấp, hạ cấp, xóa thành viên (nếu có)
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        member = get_object_or_404(GroupMemberShip, user_id=user_id, group=group)
+
+        if action == 'promote':  # Thăng cấp
+            member.role = 'admin'
+        elif action == 'demote':  # Hạ cấp
+            member.role = 'member'
+        elif action == 'remove':  # Xóa thành viên
+            member.delete()
+        member.save()
+
+        return redirect('SocialMedia:manage_group_members', group_id=group.id)
+
+    return render(request, 'Social/manage_group_members.html', {
+        'group': group,
+        'members': members,  # Truyền danh sách thành viên vào template
+    })
+
+@login_required
+def delete_group_comment(request, comment_id):
+    # Lấy bình luận với ID truyền vào từ URL (hoặc trả về 404 nếu không tìm thấy)
+    comment = get_object_or_404(GroupComment, id=comment_id)
+    
+    # Kiểm tra quyền xóa: Bình luận chỉ có thể bị xóa bởi người tạo hoặc quản trị viên
+    if comment.author != request.user and not request.user.is_staff:
+        messages.error(request, "Bạn không có quyền xóa bình luận này.")
+        return redirect('SocialMedia:group_detail', pk=comment.group_post.group.id)
+
+    # Xóa bình luận
+    comment.delete()
+    messages.success(request, "Bình luận đã được xóa thành công.")
+    
+    return redirect('SocialMedia:group_detail', pk=comment.group_post.group.id)
+
+@login_required
+def edit_group_comment(request, comment_id):
+    comment = get_object_or_404(GroupComment, id=comment_id)
+    
+    # Kiểm tra quyền chỉnh sửa: Bình luận chỉ có thể được chỉnh sửa bởi người tạo hoặc quản trị viên
+    if comment.author != request.user and not request.user.is_staff:
+        messages.error(request, "Bạn không có quyền chỉnh sửa bình luận này.")
+        return redirect('SocialMedia:group_detail', pk=comment.group_post.group.id)
+
+    if request.method == 'POST':
+        form = GroupCommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Bình luận đã được chỉnh sửa.")
+            return redirect('SocialMedia:group_detail', pk=comment.group_post.group.id)
+    else:
+        form = GroupCommentForm(instance=comment)
+
+    return render(request, 'Social/edit_group_comment.html', {'form': form, 'comment': comment})
+
+@login_required
+def reply_group_comment(request, comment_id):
+    parent_comment = get_object_or_404(GroupComment, id=comment_id)
+    group_post = parent_comment.group_post  # Lấy GroupPost từ bình luận gốc
+
+    # Tạo một bình luận mới với `parent_comment` là bình luận gốc
+    if request.method == 'POST':
+        form = GroupCommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.group_post = group_post
+            comment.author = request.user
+            comment.parent_comment = parent_comment  # Gán phản hồi là con của bình luận gốc
+            comment.save()
+            messages.success(request, "Phản hồi của bạn đã được đăng!")
+            return redirect('SocialMedia:group_detail', pk=group_post.group.id)
+
+    else:
+        form = GroupCommentForm()
+
+    return render(request, 'Social/reply_group_comment.html', {'form': form, 'parent_comment': parent_comment})
 
 @login_required
 def join_group(request, pk):
@@ -810,49 +934,85 @@ def join_group(request, pk):
     return redirect('SocialMedia:group_detail', pk=group.pk)
 
 @login_required
-def create_post(request, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-    # if request.user not in group.members.all():
-    #     return redirect('SocialMedia:group_detail', group_id=group.id)
+def create_group_post(request, group_id):
+    # Lấy đối tượng nhóm
+    group = Group.objects.get(id=group_id)
 
+    # Kiểm tra xem người dùng có tham gia nhóm hay không
+    if not group.members.filter(id=request.user.id).exists() and request.user != group.creator:
+        return HttpResponseForbidden("You are not a member of this group.")
+    
     if request.method == 'POST':
-        form = GroupPostForm(request.POST)
+        form = GroupPostForm(request.POST, user=request.user)
         if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.group = group
-            post.save()
-            return redirect('SocialMedia:group_detail', group_id=group.id)
+            group_post = form.save(commit=False)
+            group_post.author = request.user
+            group_post.status = 'pending'
+            group_post.save()
+            messages.success(request, "Bài viết đã được đăng!")
+            return redirect('SocialMedia:group_detail', pk=group.id)
     else:
-        form = GroupPostForm()
+        form = GroupPostForm(user=request.user)
 
-    return render(request, 'Social/create_post.html', {'form': form, 'group': group})
-
-@login_required
-def approve_post(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
-    if post.group.creator != request.user:
-        return redirect('SocialMedia:group_detail', group_id=post.group.id)
-
-    if request.method == 'POST':
-        post.status = 'approved'
-        post.save()
-        return redirect('SocialMedia:group_detail', group_id=post.group.id)
-
-    return render(request, 'Social/approve_post.html', {'post': post})
+    return render(request, 'Social/create_group_post.html', {'form': form, 'group': group})
 
 @login_required
-def reject_post(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
-    if post.group.creator != request.user:
-        return redirect('SocialMedia:group_detail', group_id=post.group.id)
+def approve_group_post(request, post_id):
+    group_post = get_object_or_404(GroupPost, pk=post_id)
+    if group_post.group.creator != request.user:
+        return redirect('SocialMedia:group_detail', pk=group_post.group.id)
 
     if request.method == 'POST':
-        post.status = 'rejected'
-        post.save()
-        return redirect('SocialMedia:group_detail', group_id=post.group.id)
+        group_post.status = 'approved'
+        group_post.save()
+        return redirect('SocialMedia:group_detail', pk=group_post.group.id)
 
-    return render(request, 'Social/reject_post.html', {'post': post})
+    return render(request, 'Social/approve_group_post.html', {'group_post': group_post})
+
+@login_required
+def reject_group_post(request, post_id):
+    group_post = get_object_or_404(GroupPost, pk=post_id)
+    if group_post.group.creator != request.user:
+        return redirect('SocialMedia:group_detail', pk=group_post.group.id)
+
+    if request.method == 'POST':
+        group_post.status = 'rejected'
+        group_post.save()
+        return redirect('SocialMedia:group_detail', pk=group_post.group.id)
+
+    return render(request, 'Social/reject_group_post.html', {'group_post': group_post})
+
+@login_required
+def edit_group_post(request, post_id):
+    post = get_object_or_404(GroupPost, pk=post_id)
+
+    # Kiểm tra xem người dùng có quyền chỉnh sửa không
+    if post.author != request.user and post.group.creator != request.user:
+        return redirect('SocialMedia:group_detail', pk=post.group.pk)
+
+    if request.method == 'POST':
+        form = GroupPostForm(request.POST, instance=post)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Bài viết đã được chỉnh sửa.")
+            return redirect('SocialMedia:group_detail', pk=post.group.pk)
+    else:
+        form = GroupPostForm(instance=post)
+
+    return render(request, 'Social/edit_group_post.html', {'form': form, 'post': post})
+
+@login_required
+def delete_group_post(request, post_id):
+    post = get_object_or_404(GroupPost, pk=post_id)
+
+    # Kiểm tra xem người dùng có quyền xóa không
+    if post.author != request.user and post.group.creator != request.user:
+        return redirect('SocialMedia:group_detail', pk=post.group.pk)
+
+    # Xóa bài viết
+    post.delete()
+    messages.success(request, "Bài viết đã được xóa.")
+    return redirect('SocialMedia:group_detail', pk=post.group.pk)
 
 @login_required
 def manage_join_requests(request, group_id):
@@ -870,11 +1030,21 @@ def manage_join_requests(request, group_id):
 def approve_join_request(request, pk):
     join_request = get_object_or_404(JoinRequest, pk=pk)
     
+    # Kiểm tra xem người dùng có phải là người tạo nhóm không
     if request.user == join_request.group.creator:
-        join_request.status = 'approved'
-        join_request.save()
-        join_request.group.members.add(join_request.user)
-        messages.success(request, f"Đã phê duyệt yêu cầu tham gia của {join_request.user.username}")
+        if join_request.status == 'pending':  # Kiểm tra trạng thái yêu cầu
+            # Cập nhật trạng thái yêu cầu thành 'approved'
+            join_request.status = 'approved'
+            join_request.save()
+
+            # Thêm người dùng vào nhóm nếu chưa là thành viên
+            if join_request.user not in join_request.group.members.all():
+                join_request.group.members.add(join_request.user)
+                messages.success(request, f"Đã phê duyệt yêu cầu tham gia của {join_request.user.username}.")
+            else:
+                messages.info(request, f"{join_request.user.username} đã là thành viên của nhóm.")
+        else:
+            messages.warning(request, "Yêu cầu tham gia này đã được xử lý trước đó.")
     else:
         messages.error(request, "Bạn không có quyền phê duyệt yêu cầu tham gia nhóm này.")
     
@@ -892,3 +1062,32 @@ def reject_join_request(request, pk):
         messages.error(request, "Bạn không có quyền từ chối yêu cầu tham gia nhóm này.")
     
     return redirect('SocialMedia:user_profile')
+
+@login_required
+def leave_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if group.creator == request.user:
+        messages.error(request, "Bạn không thể rời nhóm vì bạn là người tạo nhóm.")
+        return redirect('SocialMedia:group_detail', group_id=group.id)
+
+    if group.members.filter(id=request.user.id).exists():
+        group.members.remove(request.user)
+        messages.success(request, "Bạn đã rời nhóm thành công.")
+    else:
+        messages.error(request, "Bạn không phải là thành viên của nhóm.")
+
+    return redirect('SocialMedia:group_list')
+
+@login_required
+def group_members(request, group_id):
+    # Lấy nhóm từ ID
+    group = get_object_or_404(Group, id=group_id)
+    
+    # Lấy danh sách thành viên của nhóm
+    members = group.members.all()
+    
+    return render(request, 'Social/group_members.html', {
+        'group': group,
+        'members': members
+    })
