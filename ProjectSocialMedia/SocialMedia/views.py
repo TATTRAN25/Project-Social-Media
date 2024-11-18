@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, HttpRe
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 import json
 
@@ -42,6 +43,8 @@ from .models import (
     Share,
     Follow,
     GroupMemberShip,
+    Notification,
+    Tag
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -308,6 +311,10 @@ def manage_post(request, post_id=None, page_id=None):
             
             new_post.view_mode = form.cleaned_data['view_mode']  
             new_post.save()
+
+            tagged_user =  form.cleaned_data['tagged_users']
+            Tag.objects.create(post=new_post, tagged_user=tagged_user)
+
             messages.success(request, f'Bài viết đã được {action.lower()} thành công!')
             return redirect('SocialMedia:post_detail', post_id=new_post.id)
         else:
@@ -598,7 +605,7 @@ def send_friend_request(request, user_id):
 def decline_friend_request(request, request_id):
     friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
     friend_request.delete()
-    return redirect('SocialMedia:pending_friend_requests')
+    return redirect('SocialMedia:notifications')
 
 # Add friend
 @login_required
@@ -617,14 +624,7 @@ def accept_friend_request(request, request_id):
 
         # Create a Friendship record
         FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
-
     return redirect('SocialMedia:friends_list')
-
-# Display pending friend requests for the user
-@login_required
-def pending_friend_requests(request):
-    requests = FriendRequest.objects.filter(to_user=request.user, accepted=False)
-    return render(request, 'friend/pending_requests.html', {'requests': requests})
 
 # List friend
 @login_required
@@ -647,34 +647,49 @@ def friends_list(request):
 
 # Search friend
 @login_required
-def search_friends(request):        
+def search_friends(request):
     # Get all friendships involving the logged-in user
     friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
     
     # Create a dictionary to store friendship status (True if the user is a friend)
     friend_status = {}
     for friendship in friend_ships:
-        # Store friendship status for both directions
         if friendship.user1.id == request.user.id:
-            friend_status[friendship.user2.id] = True
+            friend_status[friendship.user2.id] = 'friend'
         elif friendship.user2.id == request.user.id:
-            friend_status[friendship.user1.id] = True
+            friend_status[friendship.user1.id] = 'friend'
 
     # Check for pending friend requests sent by the current user or received by the current user
     pending_requests = {}
     sent_requests = FriendRequest.objects.filter(from_user=request.user, accepted=False)
-
-    # Add sent requests to the pending_requests dictionary (status 'sent')
     for request_sent in sent_requests:
         pending_requests[request_sent.to_user.id] = 'sent'
 
-    query = request.GET.get('friend_name')
+    # Search query
+    query = request.GET.get('friend_name', '').strip()
     results = []
-    if query:
-        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)  # Exclude the current user
-        print(friend_status)
 
-    return render(request, 'friend/search_friends.html', {'results':results, 'friend_status':friend_status, "pending_requests":pending_requests})
+    if query:
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        suggestions = []
+        for user in results:
+            if user.id not in friend_status:
+                suggestions.append({
+                    'id': user.id,
+                    'username': user.username,
+                })
+
+        return JsonResponse({'suggestions': suggestions})
+
+    # Render the regular template when it's not an AJAX request
+    return render(request, 'friend/search_friends.html', {
+        'results': results,
+        'friend_status': friend_status,
+        'pending_requests': pending_requests,
+    })
+
 
 # Delete friend
 def unfriend(request, friend_id):
@@ -721,10 +736,28 @@ def follow_user(request, user_id):
     Follow.objects.create(follower=request.user, following=user_to_follow)
     return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
+# Unfollow
 def unfollow_user(request, user_id):
     user_to_follow = get_object_or_404(User, id=user_id)
     Follow.objects.filter(follower=request.user, following=user_to_follow).delete()
     return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+
+# Send notification to follower
+@login_required
+def notification_view(request):
+    # Fetch notifications for the logged-in user
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    friend_requests = FriendRequest.objects.filter(to_user=request.user, accepted=False).order_by('-created_at')
+    return render(request, 'friend/notifications.html', {'notifications': notifications, 'friend_requests':friend_requests})
+
+@login_required
+def mark_as_read(request, notification_id):
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.mark_as_read()
+    except Notification.DoesNotExist:
+        pass
+    return redirect('SocialMedia:notifications')
 
 def group_list(request):
     groups = Group.objects.all()  # Lấy tất cả nhóm từ cơ sở dữ liệu
@@ -821,15 +854,21 @@ def group_detail(request, pk):
 def manage_group_members(request, group_id):
     group = get_object_or_404(Group, id=group_id)
 
-    try:
-        # Lấy thông tin thành viên của nhóm
-        group_member = GroupMemberShip.objects.get(group=group, user=request.user)
-    except GroupMemberShip.DoesNotExist:
-        # Nếu người dùng không phải là thành viên của nhóm
-        return HttpResponseForbidden("Bạn không phải là thành viên của nhóm này.")
+    # Kiểm tra nếu người dùng là người tạo nhóm
+    if group.creator == request.user:
+        pass  # Người tạo nhóm luôn có quyền quản lý thành viên
 
-    if not (group.creator == request.user or group_member.role == 'admin' or request.user.is_staff):
-        return HttpResponseForbidden("Bạn không có quyền quản lý thành viên trong nhóm này.")
+    else:
+        try:
+            # Lấy thông tin thành viên của nhóm
+            group_member = GroupMemberShip.objects.get(group=group, user=request.user)
+        except GroupMemberShip.DoesNotExist:
+            # Nếu người dùng không phải là thành viên của nhóm
+            return HttpResponseForbidden("Bạn không phải là thành viên của nhóm này.")
+
+        # Kiểm tra quyền quản lý thành viên của người dùng
+        if not (group_member.role == 'admin' or request.user.is_staff):
+            return HttpResponseForbidden("Bạn không có quyền quản lý thành viên trong nhóm này.")
 
     # members = group.members.all()
     members = GroupMemberShip.objects.filter(group=group)
@@ -1091,3 +1130,4 @@ def group_members(request, group_id):
         'group': group,
         'members': members
     })
+    return redirect('SocialMedia:user_profile')

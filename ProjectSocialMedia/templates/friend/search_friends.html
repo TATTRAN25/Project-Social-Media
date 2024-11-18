@@ -1,4 +1,3 @@
-<!-- templates/search_friends.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -7,113 +6,150 @@
     <meta charset="UTF-8">
     <title>Search Friends</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .suggestions-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            max-width: 300px;
+            position: absolute;
+            width: calc(100% - 20px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .suggestions-list li {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .suggestions-list li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #888;
+            padding: 15px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        li {
+            background-color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-add {
+            background-color: #007bff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .btn-add:hover {
+            background-color: #007bff;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #888;
+            padding: 15px;
+        }
+
+        a {
+            color: black;
+            text-decoration: none;
+        }
+    </style>
 </head>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 20px;
-    }
-
-    h1 {
-        text-align: center;
-        color: #333;
-    }
-
-    form {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-
-    input[type="text"] {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-        margin-right: 10px;
-    }
-
-    button {
-        padding: 10px 15px;
-        border: none;
-        border-radius: 5px;
-        background-color: #007bff;
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-
-    ul {
-        list-style: none;
-        padding: 0;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    li {
-        background-color: white;
-        padding: 15px;
-        margin: 10px 0;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .btn-add {
-        background-color: #007bff;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 5px;
-        color: white;
-        text-decoration: none;
-        transition: background-color 0.3s;
-    }
-
-    .btn-add:hover {
-        background-color: #007bff;
-    }
-
-    .no-results {
-        text-align: center;
-        color: #888;
-        padding: 15px;
-    }
-
-    a {
-        color: black;
-        text-decoration: none;
-    }
-</style>
 
 <body>
-    <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends
+    <h1>
+        <a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a> Search for Friends
     </h1>
+
+    <!-- Search Form -->
     <form method="GET" action="{% url 'SocialMedia:search_friends' %}">
-        <input type="text" name="friend_name" placeholder="Search by username...">
-        <button type="submit">Search</button>
+        {% csrf_token %}
+        <div class="input-container">
+            <input id="search-bar" type="text" name="friend_name" placeholder="Search by username..."
+                value="{{ request.GET.friend_name }}">
+            <button type="submit">Search</button>
+            <!-- Suggestions List -->
+            <ul id="suggestions-list" class="suggestions-list" style="display: none;"></ul>
+        </div>
     </form>
 
+    <!-- Search Results -->
     <ul>
         {% for user in results %}
         <li>
             <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
-            <!-- Check if the user is already a friend -->
             {% if user.id in friend_status %}
             <span>Friend</span>
-
-            <!-- Check if a friend request has been sent by the current user -->
             {% elif user.id in pending_requests %}
-            <span>Send</span> <!-- Indicate that the friend request is sent -->
-
-            <!-- If no friendship and no pending request, show "Add Friend" -->
+            <span>Send</span>
             {% else %}
             <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
             {% endif %}
@@ -122,6 +158,64 @@
         <li>No results found.</li>
         {% endfor %}
     </ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchBar = document.getElementById('search-bar');
+            const suggestionsList = document.getElementById('suggestions-list');
+
+            // Show suggestions when the input is focused
+            searchBar.addEventListener('focus', function () {
+                if (searchBar.value.length > 0) {
+                    fetchSuggestions(searchBar.value);
+                }
+            });
+
+            // Show suggestions when typing
+            searchBar.addEventListener('input', function () {
+                const query = searchBar.value.trim();
+                if (query.length > 0) {
+                    fetchSuggestions(query);
+                } else {
+                    suggestionsList.style.display = 'none';
+                }
+            });
+
+            function fetchSuggestions(query) {
+                suggestionsList.innerHTML = '';  // Clear previous suggestions
+                suggestionsList.style.display = 'block';  // Show the list
+
+                const url = `{% url 'SocialMedia:search_friends' %}?friend_name=${query}`;
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                    'X-Requested-With': 'XMLHttpRequest',  // Explicitly adding the header
+                    'Content-Type': 'application/json',    // Optional but can help
+                },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            data.suggestions.forEach(suggestion => {
+                                const li = document.createElement('li');
+                                li.textContent = suggestion.username;
+                                li.addEventListener('click', function () {
+                                    searchBar.value = suggestion.username
+                                });
+                                suggestionsList.appendChild(li);
+                            });
+                        } else {
+                            const noResults = document.createElement('li');
+                            noResults.textContent = 'No results found.';
+                            suggestionsList.appendChild(noResults);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching suggestions:', error);
+                    });
+            }
+        });
+    </script>
 </body>
 
 </html>

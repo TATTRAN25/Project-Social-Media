@@ -62,9 +62,11 @@ class PageForm(forms.ModelForm):
         }
 
 class PostForm(forms.ModelForm):
+    tagged_users = forms.ModelChoiceField(queryset=User.objects.all(), required=False)
+
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image', 'view_mode'] 
+        fields = ['title', 'content', 'tagged_users', 'image', 'view_mode'] 
         widgets = {
             'content': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Nội dung bài viết...'}),
         }
