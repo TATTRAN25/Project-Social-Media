@@ -105,7 +105,6 @@
             color: #aaa;
         }
 
-
         #chat-message-input {
             padding: 10px;
             border: 1px solid #444;
@@ -181,7 +180,7 @@
             <button id="chat-message-submit">Gửi</button>
         </div>
     </div>
-        
+
     <script>
         const chatLog = document.getElementById("chat-log");
         const chatInput = document.getElementById("chat-message-input");
@@ -217,6 +216,12 @@
 
                 // Tự động cuộn xuống cuối chat
                 chatLog.scrollTop = chatLog.scrollHeight;
+            } else if (data.type === "delete_message") {
+                // Xóa tin nhắn khỏi giao diện
+                const messageElement = document.getElementById(`message-${data.message_id}`);
+                if (messageElement) {
+                    messageElement.remove();
+                }
             }
         };
 
@@ -245,6 +250,17 @@
             }
         });
 
+        // Xóa tin nhắn
+        chatLog.addEventListener("click", function (event) {
+            if (event.target.classList.contains("delete-message")) {
+                const messageId = event.target.dataset.id;
+                // Gửi yêu cầu xóa tin nhắn qua WebSocket
+                socket.send(JSON.stringify({
+                    type: "delete_message",
+                    message_id: messageId
+                }));
+            }
+        });
     </script>
 </body>
 </html>

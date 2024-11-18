@@ -66,4 +66,5 @@ urlpatterns = [
     path('group/<int:pk>/reject/', views.reject_join_request, name='reject_join_request'),
     # url massages
     path('chat/<int:receiver_id>/', views.chat_view, name='chat_view'),
+    path('delete_message/<int:message_id>/', views.delete_message_view, name='delete_message'),
 ]

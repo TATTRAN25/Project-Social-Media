@@ -78,7 +78,6 @@ class PageLikeNotificationConsumer(AsyncWebsocketConsumer):
             'likes_count': event['likes_count'],
         }))
 
-
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
         self.receiver_id = self.scope['url_route']['kwargs']['receiver_id']
@@ -122,6 +121,10 @@ class ChatConsumer(WebsocketConsumer):
                     'timestamp': message.timestamp.strftime('%H:%M'),
                 }
             )
+        
+        elif data.get('type') == 'delete_message':
+            message_id = data['message_id']
+            self.delete_message(message_id)
 
     def chat_message(self, event):
         self.send(text_data=json.dumps({
@@ -130,4 +133,29 @@ class ChatConsumer(WebsocketConsumer):
             'sender': event['sender'],
             'content': event['content'],
             'timestamp': event['timestamp'],
+        }))
+    
+    def delete_message(self, message_id):
+        try:
+            message = Message.objects.get(id=message_id)
+            # Kiểm tra quyền truy cập
+            if message.sender == self.scope['user']:
+                message.is_deleted = True
+                message.save()
+
+                # Gửi thông báo xóa tới group
+                async_to_sync(self.channel_layer.group_send)(
+                    self.room_name,
+                    {
+                        'type': 'delete_message_event',
+                        'message_id': message.id,
+                    }
+                )
+        except Message.DoesNotExist:
+            print(f"Message with id {message_id} does not exist.")
+
+    def delete_message_event(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'delete_message',
+            'message_id': event['message_id'],
         }))

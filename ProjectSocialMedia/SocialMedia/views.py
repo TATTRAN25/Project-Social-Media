@@ -1070,3 +1070,21 @@ def chat_message(self, event):
         'content': event['content'],
         'timestamp': timestamp,
     }))
+
+def delete_message_view(request, message_id):
+    if request.method == 'DELETE':
+        message = get_object_or_404(Message, id=message_id)
+        if request.user == message.sender:  # Kiểm tra xem người dùng có quyền xóa không
+            message.is_deleted = True
+            message.save()
+            return JsonResponse({'status': 'success'}, status=200)
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# Cập nhật thêm view để xử lý xóa tin nhắn qua WebSocket
+def delete_message_from_websocket(self, event):
+    self.send(text_data=json.dumps({
+        'type': 'delete_message',
+        'message_id': event['message_id'],
+    }))
