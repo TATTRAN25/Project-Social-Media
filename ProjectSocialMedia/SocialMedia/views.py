@@ -1081,10 +1081,3 @@ def delete_message_view(request, message_id):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-# Cập nhật thêm view để xử lý xóa tin nhắn qua WebSocket
-def delete_message_from_websocket(self, event):
-    self.send(text_data=json.dumps({
-        'type': 'delete_message',
-        'message_id': event['message_id'],
-    }))
