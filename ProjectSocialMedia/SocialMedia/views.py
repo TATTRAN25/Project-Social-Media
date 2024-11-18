@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import localtime
 
 from .forms import (
     UserRegistrationForm,
@@ -1036,33 +1037,36 @@ def reject_join_request(request, pk):
     return redirect('SocialMedia:user_profile')
 
 def chat_view(request, receiver_id):
-    # Lấy thông tin người nhận
     receiver = get_object_or_404(User, id=receiver_id)
-    
+    messages = [] 
+
     # Lấy danh sách bạn bè
     friend_ids = FriendShip.objects.filter(
         Q(user1=request.user) | Q(user2=request.user)
     ).values_list('user1', 'user2')
 
-    # Chọn các ID bạn bè
     friends = set()
     for user1, user2 in friend_ids:
-        if user1 != request.user.id:
-            friends.add(user1)
-        if user2 != request.user.id:
-            friends.add(user2)
+        friends.add(user1)
+        friends.add(user2)
 
-    # Lấy thông tin người bạn
+    friends.discard(request.user.id)  # Xóa người dùng hiện tại khỏi danh sách bạn bè
     friend_users = User.objects.filter(id__in=friends)
 
-    # Lấy tin nhắn giữa người dùng và người nhận
+    # Lấy tin nhắn giữa người dùng và người nhận, chỉ lấy những tin nhắn chưa bị xóa
     messages = Message.objects.filter(
-        (Q(sender=request.user) & Q(receiver=receiver)) |
-        (Q(sender=receiver) & Q(receiver=request.user))
+        (Q(sender=request.user) & Q(receiver=receiver) & Q(is_deleted=False)) |
+        (Q(sender=receiver) & Q(receiver=request.user) & Q(is_deleted=False))
     ).order_by('timestamp')
 
-    return render(request, 'messages/chat.html', {
-        'receiver': receiver,
-        'messages': messages,
-        'friends': friend_users,
-    })
+    return render(request, 'messages/chat.html', {'receiver': receiver, 'messages': messages, 'friends': friend_users,})
+
+def chat_message(self, event):
+    timestamp = localtime().strftime('%H:%M:%S')
+    self.send(text_data=json.dumps({
+        'type': 'chat_message',
+        'message_id': event['message_id'],
+        'sender': event['sender'],
+        'content': event['content'],
+        'timestamp': timestamp,
+    }))

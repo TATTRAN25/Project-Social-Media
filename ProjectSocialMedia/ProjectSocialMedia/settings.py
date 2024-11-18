@@ -144,3 +144,6 @@ PASSWORD_HASHERS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = MEDIA_DIR
+
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = True

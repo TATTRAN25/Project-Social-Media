@@ -6,9 +6,13 @@ django.setup()
 
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import WebsocketConsumer
 from .models import Message
+from asgiref.sync import async_to_sync
+from django.contrib.auth.models import User
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        
         await self.channel_layer.group_add(
             "friendship_notifications",
             self.channel_name
@@ -75,54 +79,55 @@ class PageLikeNotificationConsumer(AsyncWebsocketConsumer):
         }))
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
+class ChatConsumer(WebsocketConsumer):
+    def connect(self):
         self.receiver_id = self.scope['url_route']['kwargs']['receiver_id']
-        self.room_group_name = f'chat_{self.receiver_id}'
+        self.room_name = f"chat_{min(self.scope['user'].id, self.receiver_id)}_{max(self.scope['user'].id, self.receiver_id)}"
 
-        # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name,
+        async_to_sync(self.channel_layer.group_add)(
+            self.room_name,
+            self.channel_name
+        )
+        self.accept()
+
+    def disconnect(self, close_code):
+        async_to_sync(self.channel_layer.group_discard)(
+            self.room_name,
             self.channel_name
         )
 
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
-
-    async def receive(self, text_data):
+    def receive(self, text_data):
         data = json.loads(text_data)
-        message = data['message']
-        sender_id = self.scope["user"].id
-        receiver_id = self.receiver_id
+        message_content = data.get('content')
 
-        # Save message to database
-        msg = await Message.objects.create(sender_id=sender_id, receiver_id=receiver_id, content=message)
+        if message_content:
+            sender = self.scope['user']
+            receiver = User.objects.get(id=self.receiver_id)
 
-        # Broadcast message to room group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': msg.content,
-                'sender': sender_id,
-                'timestamp': str(msg.timestamp)
-            }
-        )
+            # Lưu tin nhắn vào cơ sở dữ liệu
+            message = Message.objects.create(
+                sender=sender,
+                receiver=receiver,
+                content=message_content
+            )
 
-    async def chat_message(self, event):
-        message = event['message']
-        sender = event['sender']
-        timestamp = event['timestamp']
+            # Gửi tin nhắn tới group
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_name,
+                {
+                    'type': 'chat_message',
+                    'message_id': message.id,
+                    'sender': sender.username,
+                    'content': message_content,
+                    'timestamp': message.timestamp.strftime('%H:%M'),
+                }
+            )
 
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'message': message,
-            'sender': sender,
-            'timestamp': timestamp,
+    def chat_message(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'chat_message',
+            'message_id': event['message_id'],
+            'sender': event['sender'],
+            'content': event['content'],
+            'timestamp': event['timestamp'],
         }))

@@ -4,41 +4,146 @@
     {% load static %}
     <meta charset="UTF-8">
     <title>Chat với {{ receiver.username }}</title>
-    <link rel="stylesheet" href="{% static 'assets/css/chat.css' %}">
-    <script>
-        let chatSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/chat/{{ receiver.id }}/'
-        );
-
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += (data.sender + ': ' + data.message + '\n');
-        };
-
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
-
-        document.querySelector('#chat-message-input').focus();
-        document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.keyCode === 13) {  // Enter key
-                sendMessage();
-            }
-        };
-
-        document.querySelector('#chat-message-submit').onclick = function(e) {
-            sendMessage();
-        };
-
-        function sendMessage() {
-            const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
-            chatSocket.send(JSON.stringify({
-                'message': message
-            }));
-            messageInputDom.value = '';
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #181818; 
+            color: #ffffff; 
+            margin: 0;
+            padding: 0;
         }
-    </script>
+
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .friend-list {
+            width: 30%;
+            background-color: #2c2c2c;  
+            border-right: 1px solid #444;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .friend-list h3 {
+            margin: 0 0 15px;
+            color: #e0e0e0; 
+        }
+
+        .friend-list ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .friend-list li {
+            margin-bottom: 10px;
+        }
+
+        .friend-list a {
+            text-decoration: none;
+            color: #00bfff;  
+            font-weight: bold;
+        }
+
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1c1c1c; 
+            padding: 20px;
+        }
+
+        .chat-window h2 {
+            margin: 0 0 20px;
+            color: #ffffff;  
+        }
+
+        #chat-log {
+            flex: 1;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #2a2a2a;  
+            color: #ffffff;  
+            overflow-y: auto;
+            resize: none;
+            font-family: Arial, sans-serif;
+            white-space: pre-wrap;
+        }
+
+        .chat-message {
+            display: flex;
+            justify-content: space-between; /* Dàn đều các phần tử trong một dòng */
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #333; /* Nền của mỗi tin nhắn */
+        }
+
+        .chat-message .chat-details {
+            flex: 1; /* Nội dung tin nhắn chiếm phần lớn không gian */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-message .chat-details span {
+            margin-bottom: 3px; /* Khoảng cách giữa tên và nội dung */
+        }
+
+        .chat-message .chat-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Khoảng cách giữa thời gian và nút xóa */
+        }
+
+        .chat-message .chat-message-time {
+            font-size: 0.8em;
+            color: #aaa;
+        }
+
+
+        #chat-message-input {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin-top: 10px;
+            width: calc(100% - 22px);
+            background-color: #3a3a3a; 
+            color: #ffffff;  
+        }
+
+        #chat-message-submit {
+            background-color: #00bfff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        #chat-message-submit:hover {
+            background-color: #008bbf;  
+        }
+
+        .delete-message {
+            background: none;
+            border: none;
+            color: #ff4d4d;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin-left: 10px;
+            transition: color 0.3s;
+        }
+
+        .delete-message:hover {
+            color: #ff0000;
+        }
+    </style>
 </head>
 <body>
     <div class="chat-container">
@@ -56,10 +161,90 @@
         </div>
         <div class="chat-window">
             <h2>Nhắn tin với {{ receiver.username }}</h2>
-            <textarea id="chat-log" cols="30" rows="10" readonly></textarea>
-            <input id="chat-message-input" type="text" size="100" placeholder="Nhập tin nhắn...">
+            <div id="chat-log">
+                {% for message in messages %}
+                <div class="chat-message" id="message-{{ message.id }}">
+                    <div class="chat-details">
+                        <span>{{ message.sender.username }}</span>
+                        <span>{{ message.content }}</span>
+                    </div>
+                    <div class="chat-actions">
+                        <span class="chat-message-time">{{ message.timestamp|date:"H:i" }}</span>
+                        {% if message.sender == request.user %}
+                            <button class="delete-message" data-id="{{ message.id }}">🗑️</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <input id="chat-message-input" type="text" placeholder="Nhập tin nhắn...">
             <button id="chat-message-submit">Gửi</button>
         </div>
     </div>
+        
+    <script>
+        const chatLog = document.getElementById("chat-log");
+        const chatInput = document.getElementById("chat-message-input");
+        const chatSubmit = document.getElementById("chat-message-submit");
+
+        // Kết nối WebSocket
+        const socket = new WebSocket(`ws://${window.location.host}/ws/chat/{{ receiver.id }}/`);
+
+        socket.onopen = function () {
+            console.log("WebSocket kết nối thành công");
+        };
+
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "chat_message") {
+                // Thêm tin nhắn mới vào giao diện
+                const newMessage = document.createElement("div");
+                newMessage.classList.add("chat-message");
+                newMessage.id = `message-${data.message_id}`;
+                newMessage.innerHTML = `
+                    <div class="chat-details">
+                        <span>${data.sender}</span>
+                        <span>${data.content}</span>
+                    </div>
+                    <div class="chat-actions">
+                        <span class="chat-message-time">${data.timestamp}</span>
+                        ${data.sender === "{{ user.username }}" ? `
+                            <button class="delete-message" data-id="${data.message_id}">🗑️</button>` : ''}
+                    </div>
+                `;
+                chatLog.appendChild(newMessage);
+
+                // Tự động cuộn xuống cuối chat
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        };
+
+        socket.onclose = function () {
+            console.error("WebSocket đã bị đóng");
+        };
+
+        // Gửi tin nhắn mới
+        chatSubmit.addEventListener("click", function () {
+            const messageContent = chatInput.value.trim();
+
+            if (messageContent !== "") {
+                socket.send(JSON.stringify({
+                    type: "chat_message",
+                    content: messageContent,
+                }));
+
+                chatInput.value = ""; // Xóa nội dung ô nhập
+            }
+        });
+
+        // Nhấn Enter để gửi tin nhắn
+        chatInput.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                chatSubmit.click();
+            }
+        });
+
+    </script>
 </body>
 </html>

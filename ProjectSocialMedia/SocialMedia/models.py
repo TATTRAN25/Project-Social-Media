@@ -192,6 +192,7 @@ class Message(models.Model):
     receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'Message from {self.sender.username} to {self.receiver.username} at {self.timestamp}'
+        return f'{self.sender.username}: {self.content}'
