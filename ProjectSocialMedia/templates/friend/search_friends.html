@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Search Friends</title>
+    <title>Tìm bạn bè</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         .suggestions-list {
@@ -144,18 +144,22 @@
     <!-- Search Results -->
     <ul>
         {% for user in results %}
-        <li>
+        <li id="user-{{ user.id }}">
             <a href="{% url 'SocialMedia:user_profile' user.id %}">{{ user.username }}</a>
             {% if user.id in friend_status %}
             <span>Friend</span>
             {% elif user.id in pending_requests %}
             <span>Send</span>
             {% else %}
-            <a href="{% url 'SocialMedia:send_friend_request' user.id %}" class="btn-add">Add Friend</a>
+            <form method="POST" action="{% url 'SocialMedia:search_friends' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="btn-add">Kết bạn</button>
+            </form>
             {% endif %}
         </li>
         {% empty %}
-        <li>No results found.</li>
+        <li class="no-results">Không tìm thấy kết quả.</li>
         {% endfor %}
     </ul>
 
@@ -215,6 +219,56 @@
                     });
             }
         });
+        const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+                case 'friend_request_sent':
+                    handleFriendRequestSent(data);
+                    break;
+                case 'friend_request_accepted':
+                    handleFriendRequestAccepted(data);
+                    break;
+                case 'friend_request_declined':
+                    handleFriendRequestDeclined(data);
+                    break;
+                default:
+                    console.warn('Unknown notification type:', data.type);
+            }
+        };
+    
+        function handleFriendRequestSent(data) {
+            alert(data.message);  // Hiển thị thông báo
+            // Có thể cập nhật giao diện nếu cần
+        }
+    
+        function handleFriendRequestAccepted(data) {
+            const userId = data.from_user; // Giả sử dữ liệu trả về có chứa từ khóa này
+            const userElement = document.getElementById(`user-${userId}`);
+            if (userElement) {
+                userElement.innerHTML = '<span>Bạn bè</span>'; // Cập nhật trạng thái
+            }
+        }
+    
+        function handleFriendRequestDeclined(data) {
+            const userId = data.from_user; // Giả sử dữ liệu trả về có chứa từ khóa này
+            const userElement = document.getElementById(`user-${userId}`);
+            if (userElement) {
+                // Cập nhật giao diện nếu cần, có thể hiển thị thông báo
+                alert(`${data.from_user} đã từ chối yêu cầu kết bạn.`);
+            }
+        }
+    
+        socket.onclose = function(event) {
+            console.error('WebSocket đã đóng bất ngờ');
+        };
+    
+        socket.onerror = function(error) {
+            console.error('Lỗi WebSocket:', error);
+            alert('Kết nối đến thông báo không thành công. Vui lòng thử lại sau.');
+        };
     </script>
 </body>
 

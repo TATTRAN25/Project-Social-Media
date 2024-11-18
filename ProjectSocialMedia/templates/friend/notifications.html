@@ -1,9 +1,8 @@
-<!-- templates/friend/pending_requests.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pending Friend Requests</title>
+    <title>Yêu cầu kết bạn </title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <style>
@@ -17,34 +16,6 @@
     h1 {
         text-align: center;
         color: #333;
-    }
-
-    form {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-
-    input[type="text"] {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 300px;
-        margin-right: 10px;
-    }
-
-    button {
-        padding: 10px 15px;
-        border: none;
-        border-radius: 5px;
-        background-color: #007bff;
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-
-    button:hover {
-        background-color: #0056b3;
     }
 
     ul {
@@ -73,6 +44,7 @@
         text-decoration: none;
         transition: background-color 0.3s;
         margin-left: auto;
+        margin-right: 10px; /* Khoảng cách giữa Accept và Decline */
     }
 
     .btn-accept:hover {
@@ -103,15 +75,14 @@
         padding: 15px;
     }
 
-    a{
+    a {
         color: black;
         text-decoration: none;
     }
 </style>
 <body>
     <h1><a href="{% url 'SocialMedia:index' %}"><i class="fa-sharp fa-solid fa-arrow-left"></i></a>Notifications</h1>
-
-    <ul>
+    <ul id="friend-requests-list">
         {% for friend_request in friend_requests %}
             <li>
                 {{ friend_request.from_user.username }} 
@@ -122,14 +93,61 @@
     </ul>
     <ul>
         {% for notification in notifications %}
-          <li>
-            <strong>{{ notification.message }}</strong>
-            <small>{{ notification.created_at }}</small>
-            {% if not notification.is_read %}
-              <a href="{% url 'SocialMedia:mark_as_read' notification.id %}">Mark as read</a>
-            {% endif %}
-          </li>
+            <li>
+                <strong>{{ notification.message }}</strong>
+                <small>{{ notification.created_at }}</small>
+                {% if not notification.is_read %}
+                    <a href="{% url 'SocialMedia:mark_as_read' notification.id %}">Đánh dấu là đã đọc</a>
+                {% endif %}
+            </li>
+        {% empty %}
+            <li class="no-results">Không có thông báo nào.</li>
         {% endfor %}
     </ul>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
+        
+        socket.onopen = function() {
+            console.log("Kết nối WebSocket đã được thiết lập");
+        };
+        
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const friendRequestsList = document.getElementById("friend-requests-list");
+    
+            if (data.type === 'friend_request_sent') {
+                // Thêm yêu cầu kết bạn mới vào danh sách
+                const newRequestItem = document.createElement("li");
+                newRequestItem.id = `request-${data.request_id}`;
+                newRequestItem.innerHTML = `
+                    ${data.from_user} 
+                    <a href="/accept_friend_request/${data.request_id}/" class="btn-accept">Accept</a>
+                    <a href="/decline_friend_request/${data.request_id}/" class="btn-decline">Decline</a>
+                `;
+                friendRequestsList.appendChild(newRequestItem);
+                alert(data.message);
+    
+            } else if (data.type === 'friend_request_accepted' || data.type === 'friend_request_declined') {
+                const requestId = data.request_id;
+                if (requestId) {
+                    const requestElement = document.getElementById(`request-${requestId}`);
+                    if (requestElement) {
+                        requestElement.remove(); // Xóa yêu cầu đã xử lý
+                        alert(`Yêu cầu kết bạn đã ${data.type === 'friend_request_accepted' ? 'được chấp nhận' : 'được từ chối'}.`);
+                    }
+                }
+            }
+        };
+        
+        socket.onclose = function(event) {
+            console.error('Kết nối WebSocket đã đóng bất ngờ');
+        };
+        
+        socket.onerror = function(error) {
+            console.error('Lỗi WebSocket:', error);
+            alert('Kết nối đến thông báo không thành công. Vui lòng thử lại sau.');
+        };
+    </script>
 </body>
 </html>

@@ -1,10 +1,14 @@
+import json
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import auth, messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import SetPasswordForm, PasswordChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q,Count
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseForbidden
@@ -13,7 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
-import json
+from django.utils.timezone import localtime
 
 from .forms import (
     UserRegistrationForm,
@@ -44,7 +48,8 @@ from .models import (
     Follow,
     GroupMemberShip,
     Notification,
-    Tag
+    Tag,
+    Message,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -276,11 +281,19 @@ def page_detail(request, page_id):
         else:
             messages.error(request, 'Bạn không có quyền xóa trang này.')
         return redirect('SocialMedia:index')  
+
     # Lấy trang theo page_id
     page = get_object_or_404(Page, id=page_id)
     posts = page.posts.all()  
 
-    return render(request, 'Social/page_detail.html', {'page': page, 'posts': posts})
+    # Kiểm tra xem người dùng đã like trang chưa
+    user_liked = request.user in page.likes.all()
+
+    return render(request, 'Social/page_detail.html', {
+        'page': page,
+        'posts': posts,
+        'user_liked': user_liked  #
+    })
 
 # Crud Post
 @login_required
@@ -328,15 +341,15 @@ def manage_post(request, post_id=None, page_id=None):
 
 @login_required
 def post_detail(request, post_id):
-    # Get the post or return a 404 if it doesn't exist
+    # Lấy bài viết hoặc trả về 404 nếu không tồn tại
     post = get_object_or_404(Post, id=post_id)
 
-    # Check account status
+    # Kiểm tra trạng thái tài khoản
     if request.user.userprofileinfo.status == 'inactive':
         messages.error(request, 'Tài khoản của bạn đã bị tạm ngưng, bạn không thể xem bài viết.')
         return redirect('SocialMedia:index')
 
-    # Determine if the user can view the post
+    # Kiểm tra quyền truy cập bài viết
     can_view = False
 
     if post.author == request.user:
@@ -349,33 +362,33 @@ def post_detail(request, post_id):
             (Q(user1=post.author) & Q(user2=request.user))
         ).exists()
     elif post.view_mode == 'only_me':
-        can_view = False  # Only the author can view this
+        can_view = False  # Chỉ tác giả có thể xem
 
     if not can_view:
         messages.error(request, 'Bạn không có quyền xem bài viết này.')
         return redirect('SocialMedia:index')
 
-    # Fetch comments for the post
+    # Lấy bình luận cho bài viết
     comments = post.comments.filter(parent_comment__isnull=True)
     form = CommentForm()
 
-    # Handle post deletion
+    # Xử lý yêu cầu xóa bài viết
     if request.method == 'POST':
         if 'delete_post' in request.POST:
             if request.user == post.author or request.user.is_staff:
                 post.delete()
                 messages.success(request, 'Bài viết đã được xóa thành công!')
-                return redirect('SocialMedia:page_detail', post.page.id)
+                return redirect('SocialMedia:index')
             else:
                 messages.error(request, 'Bạn không có quyền xóa bài viết này.')
-        elif 'comment' in request.POST:  # Handle comment submission
+        elif 'comment' in request.POST:  # Xử lý việc gửi bình luận
             form = CommentForm(request.POST)
             if form.is_valid():
                 new_comment = form.save(commit=False)
                 new_comment.author = request.user
                 new_comment.post = post
 
-                # Check if it's a reply to another comment
+                # Kiểm tra nếu đây là một phản hồi bình luận khác
                 parent_comment_id = request.POST.get('parent_comment')
                 if parent_comment_id:
                     parent_comment = get_object_or_404(Comment, id=parent_comment_id)
@@ -385,7 +398,7 @@ def post_detail(request, post_id):
                 messages.success(request, 'Bình luận của bạn đã được đăng!')
                 return redirect('SocialMedia:post_detail', post_id=post.id)
 
-    # Count reactions
+    # Đếm số lượng phản ứng
     reactions_count = {
         'like': post.reaction_set.filter(reaction_type='like').count(),
         'love': post.reaction_set.filter(reaction_type='love').count(),
@@ -440,38 +453,71 @@ def delete_comment(request, comment_id):
     # Chuyển hướng về trang chi tiết bài viết hoặc trang danh sách bình luận
     return redirect('SocialMedia:post_detail', post_id=comment.post.id)
 
+@property
+def total_interactions(self):
+    return self.likes.count() + self.comments.count()
+
 def index(request):
-    posts = Post.objects.all().prefetch_related('likes').order_by('-created_at')
-    pages = Page.objects.all()
-    shared_posts = Share.objects.select_related('post').order_by('-created_at')
+    shared_info = []  # Khởi tạo shared_info ở đầu hàm
+    posts = []  # Khởi tạo posts là danh sách rỗng cho guest
 
     if request.user.is_authenticated:
+        # Lấy danh sách bạn bè
+        user_friends = set(request.user.friendships1.values_list('user2', flat=True)) | \
+                       set(request.user.friendships2.values_list('user1', flat=True))
+
+        # Lấy danh sách người mà người dùng đang theo dõi
+        user_following = set(request.user.following.values_list('following', flat=True))
+
+        # Thêm chính người dùng vào danh sách
+        user_friends.add(request.user.id)
+        user_following.add(request.user.id)
+
+        # Lấy tất cả bài viết từ bạn bè và người theo dõi, cùng với bài viết của chính người dùng
+        posts = Post.objects.filter(author__in=user_friends | user_following).prefetch_related('likes').order_by('-created_at')
+
+        # Lọc bài viết theo chế độ xem
+        filtered_posts = []
+        for post in posts:
+            if post.view_mode == 'public':
+                filtered_posts.append(post)
+            elif post.view_mode == 'private':
+                # Chỉ thêm bài viết nếu tác giả là bạn bè hoặc chính người dùng
+                if post.author.id in user_friends:
+                    filtered_posts.append(post)
+            elif post.view_mode == 'only_me' and post.author == request.user:
+                filtered_posts.append(post)
+
+        posts = filtered_posts  
+        # Lấy thông tin chia sẻ
+        shared_posts = Share.objects.filter(user__in=user_friends).select_related('post').order_by('-created_at')
+
+        shared_info = [
+            {
+                'post_id': share.post.id,
+                'username': share.user.username,
+                'comment': share.comment
+            }
+            for share in shared_posts
+        ]
+
         liked_posts = request.user.liked_posts.all()
         liked_post_ids = set(post.id for post in liked_posts)
 
-        # Lọc bài viết chính dựa trên view_mode
-        visible_posts = []
-        for post in posts:
-            if can_user_view_post(request.user, post):
-                visible_posts.append(post)
-
-        # Lọc các bài viết đã chia sẻ
-        visible_shared_posts = []
-        for share in shared_posts:
-            # Kiểm tra quyền truy cập bài viết đã chia sẻ
-            if can_user_view_post(request.user, share.post):
-                visible_shared_posts.append(share)
-
+        # Lọc bài viết có thể quan tâm dựa trên tương tác
+        recommended_posts = Post.objects.filter(author__in=user_friends | user_following).annotate(
+            total_interactions=Count('likes') + Count('comments')
+        ).order_by('-total_interactions')[:5]
     else:
-        liked_post_ids = set()
-        visible_posts = posts.filter(view_mode='public')
-        visible_shared_posts = shared_posts.filter(post__view_mode='public')
+        # Guest sẽ không thấy bài viết nào
+        posts = []  # Không có bài viết nào cho guest
+        recommended_posts = []  # Không có bài viết nào để gợi ý
 
     return render(request, 'home/index.html', {
-        'posts': visible_posts,
-        'pages': pages,
-        'liked_post_ids': liked_post_ids,
-        'shared_posts': visible_shared_posts,
+        'posts': posts,
+        'recommended_posts': recommended_posts,
+        'liked_post_ids': [],
+        'shared_info': shared_info,
     })
 
 def like_post(request, post_id):
@@ -483,12 +529,28 @@ def like_post(request, post_id):
         else:
             post.likes.add(request.user)
             is_liked = True
+
+        # Gửi thông báo đến nhóm WebSocket
+        notify_like(request.user, post)
+
         data = {
             'is_liked': is_liked,
             'likes_count': post.likes.count()
         }
         return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def notify_like(user, post):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_likes_{post.id}", 
+        {
+            'type': 'like_post',
+            'post_id': post.id,
+            'is_liked': user in post.likes.all(),  
+            'likes_count': post.likes.count(),
+        }
+    )
 
 @login_required
 def like_page(request, page_id):
@@ -497,12 +559,33 @@ def like_page(request, page_id):
     if request.user in page.likes.all():
         # Nếu người dùng đã "like" rồi, bỏ "like"
         page.likes.remove(request.user)
+        is_liked = False
     else:
         # Nếu chưa "like", thêm vào danh sách "liked"
         page.likes.add(request.user)
+        is_liked = True
 
-    return redirect('SocialMedia:page_detail', page_id=page.id)
-    
+    # Gửi thông báo đến nhóm WebSocket
+    notify_like_page(page, is_liked)
+
+    data = {
+        'is_liked': is_liked,
+        'likes_count': page.likes.count()
+    }
+    return JsonResponse(data)
+
+def notify_like_page(page, is_liked):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_likes_page_{page.id}",
+        {
+            'type': 'like_page',
+            'page_id': page.id,
+            'is_liked': is_liked,
+            'likes_count': page.likes.count(),
+        }
+    )
+
 @login_required
 def like_list(request):
     # Lấy danh sách các trang mà người dùng đã like
@@ -578,6 +661,7 @@ def share_post(request, share_id=None, post_id=None):
         'post': post, 
     })
 
+
 def about(request):
     return render(request, 'home/about.html')
 
@@ -590,41 +674,82 @@ def post_details(request):
 def contact(request):
     return render(request, 'home/contact.html')
 
-# Handle friend request
-# Send friend request
+# Gửi thông báo chung cho các người dùng
+def notify_users(message, notification_type, **extra_fields):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+    'friendship_notifications',
+    {
+        'type': 'send_notification',
+        'message': message,
+        'notification_type': notification_type, 
+        **extra_fields
+    }
+)
+
+# Gửi yêu cầu kết bạn
 @login_required
 def send_friend_request(request, user_id):
     to_user = get_object_or_404(User, id=user_id)
-    # Ensure a request isn't already sent
-    if not FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
-        FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+    
+    if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+        messages.info(request, "Bạn đã gửi yêu cầu kết bạn đến người dùng này trước đó.")
+    else:
+        friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+
+        # Gửi thông báo đến người nhận yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã gửi yêu cầu kết bạn đến {to_user.username}",
+            notification_type="friend_request_sent",
+            from_user=request.user.username,
+            request_id=friend_request.id  # Đảm bảo ID của yêu cầu kết bạn được truyền
+        )
+        messages.success(request, "Yêu cầu kết bạn đã được gửi.")
+
     return redirect('SocialMedia:search_friends')
 
-# Reject friend request
+# Từ chối yêu cầu kết bạn
 @login_required
 def decline_friend_request(request, request_id):
     friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
-    friend_request.delete()
+    
+    with transaction.atomic():
+        friend_request.delete()
+
+        # Gửi thông báo đến người gửi yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã từ chối yêu cầu kết bạn của bạn.",
+            notification_type="friend_request_declined",
+            from_user=request.user.username,
+            request_id=request_id
+        )
+        messages.success(request, "Bạn đã từ chối yêu cầu kết bạn.")
+
     return redirect('SocialMedia:notifications')
 
-# Add friend
+# Chấp nhận yêu cầu kết bạn
 @login_required
 def accept_friend_request(request, request_id):
-    friend_requests = FriendRequest.objects.filter(id=request_id, to_user=request.user)
-    for friend_request in friend_requests:
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user)
+    
+    with transaction.atomic():
         friend_request.accepted = True
         friend_request.save()
 
-        friend_request_reverses = FriendRequest()
-        if FriendRequest.objects.filter(from_user=request.user):
-            friend_request_reverses = FriendRequest.objects.filter(from_user=request.user)
-            for friend_request_reverse in friend_request_reverses:
-                friend_request_reverse.accepted = True
-                friend_request_reverse.save()
-
-        # Create a Friendship record
+        # Tạo một bản ghi Friendship
         FriendShip.objects.create(user1=friend_request.from_user, user2=request.user)
+
+        # Gửi thông báo đến người gửi yêu cầu
+        notify_users(
+            message=f"{request.user.username} đã chấp nhận yêu cầu kết bạn của bạn.",
+            notification_type="friend_request_accepted",
+            from_user=request.user.username,
+            user_id=friend_request.from_user.id
+        )
+        messages.success(request, "Bạn đã chấp nhận yêu cầu kết bạn.")
+
     return redirect('SocialMedia:friends_list')
+
 
 # List friend
 @login_required
@@ -648,10 +773,10 @@ def friends_list(request):
 # Search friend
 @login_required
 def search_friends(request):
-    # Get all friendships involving the logged-in user
+    # Lấy tất cả các mối quan hệ bạn bè liên quan đến người dùng đang đăng nhập
     friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
     
-    # Create a dictionary to store friendship status (True if the user is a friend)
+    # Tạo một từ điển để lưu trạng thái bạn bè
     friend_status = {}
     for friendship in friend_ships:
         if friendship.user1.id == request.user.id:
@@ -659,7 +784,7 @@ def search_friends(request):
         elif friendship.user2.id == request.user.id:
             friend_status[friendship.user1.id] = 'friend'
 
-    # Check for pending friend requests sent by the current user or received by the current user
+    # Kiểm tra yêu cầu kết bạn đang chờ xử lý
     pending_requests = {}
     sent_requests = FriendRequest.objects.filter(from_user=request.user, accepted=False)
     for request_sent in sent_requests:
@@ -672,10 +797,30 @@ def search_friends(request):
     if query:
         results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
 
+    # Kiểm tra xem có yêu cầu kết bạn nào được gửi từ giao diện không
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        to_user = get_object_or_404(User, id=user_id)
+
+        if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+            messages.info(request, "Bạn đã gửi yêu cầu kết bạn đến người dùng này trước đó.")
+        else:
+            FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+
+            # Gửi thông báo đến người nhận yêu cầu
+            notify_users(
+                message=f"{request.user.username} đã gửi yêu cầu kết bạn đến {to_user.username}",
+                notification_type="friend_request_sent",
+                from_user=request.user.username,
+                user_id=to_user.id
+            )
+            messages.success(request, "Yêu cầu kết bạn đã được gửi.")
+
+    # Xử lý yêu cầu AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         suggestions = []
         for user in results:
-            if user.id not in friend_status:
+            if user.id not in friend_status and user.id not in pending_requests:
                 suggestions.append({
                     'id': user.id,
                     'username': user.username,
@@ -683,13 +828,12 @@ def search_friends(request):
 
         return JsonResponse({'suggestions': suggestions})
 
-    # Render the regular template when it's not an AJAX request
+    # Render giao diện khi không phải là yêu cầu AJAX
     return render(request, 'friend/search_friends.html', {
         'results': results,
         'friend_status': friend_status,
         'pending_requests': pending_requests,
     })
-
 
 # Delete friend
 def unfriend(request, friend_id):
@@ -1100,7 +1244,8 @@ def reject_join_request(request, pk):
     else:
         messages.error(request, "Bạn không có quyền từ chối yêu cầu tham gia nhóm này.")
     
-    return redirect('SocialMedia:user_profile')
+    # Chuyển hướng về trang chi tiết nhóm
+    return redirect('SocialMedia:group_detail', pk=join_request.group.id)
 
 @login_required
 def leave_group(request, group_id):
@@ -1131,3 +1276,48 @@ def group_members(request, group_id):
         'members': members
     })
     return redirect('SocialMedia:user_profile')
+def chat_view(request, receiver_id):
+    receiver = get_object_or_404(User, id=receiver_id)
+    messages = [] 
+
+    # Lấy danh sách bạn bè
+    friend_ids = FriendShip.objects.filter(
+        Q(user1=request.user) | Q(user2=request.user)
+    ).values_list('user1', 'user2')
+
+    friends = set()
+    for user1, user2 in friend_ids:
+        friends.add(user1)
+        friends.add(user2)
+
+    friends.discard(request.user.id)  # Xóa người dùng hiện tại khỏi danh sách bạn bè
+    friend_users = User.objects.filter(id__in=friends)
+
+    # Lấy tin nhắn giữa người dùng và người nhận, chỉ lấy những tin nhắn chưa bị xóa
+    messages = Message.objects.filter(
+        (Q(sender=request.user) & Q(receiver=receiver) & Q(is_deleted=False)) |
+        (Q(sender=receiver) & Q(receiver=request.user) & Q(is_deleted=False))
+    ).order_by('timestamp')
+
+    return render(request, 'messages/chat.html', {'receiver': receiver, 'messages': messages, 'friends': friend_users,})
+
+def chat_message(self, event):
+    timestamp = localtime().strftime('%H:%M:%S')
+    self.send(text_data=json.dumps({
+        'type': 'chat_message',
+        'message_id': event['message_id'],
+        'sender': event['sender'],
+        'content': event['content'],
+        'timestamp': timestamp,
+    }))
+
+def delete_message_view(request, message_id):
+    if request.method == 'DELETE':
+        message = get_object_or_404(Message, id=message_id)
+        if request.user == message.sender:  # Kiểm tra xem người dùng có quyền xóa không
+            message.is_deleted = True
+            message.save()
+            return JsonResponse({'status': 'success'}, status=200)
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
