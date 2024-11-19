@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="container">
+    <h2>{% if share %}Chỉnh sửa{% else %}Chia sẻ{% endif %} bài viết</h2>
+    
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        {% if share %}
+            {% if share.user == user %}
+                {{ form.as_p }}  
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            {% else %}
+                <p>Người dùng không xác định.</p>
+            {% endif %}
+        {% else %}
+            <!-- Nếu không có share, luôn hiển thị form để chia sẻ -->
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Chia sẻ</button>
+        {% endif %}
+        
+        {% if post %}
+            <h4>Thông tin bài viết:</h4>
+            <p><strong>Tiêu đề:</strong> {{ post.title }}</p>
+            <p><strong>Nội dung:</strong></p>
+            <p>{{ post.content }}</p>
+            {% if post.image %}
+                <img src="{{ post.image.url }}" alt="Hình ảnh bài viết" style="max-width: 100%;">
+            {% endif %}
+        {% else %}
+            <p>Không có bài viết nào để chia sẻ.</p>
+        {% endif %}
+    </form>
+    <hr>
+</div>
+{% endblock %}

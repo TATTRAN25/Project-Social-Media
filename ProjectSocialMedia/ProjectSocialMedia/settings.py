@@ -33,8 +33,26 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'channels',
     'SocialMedia',
 ]
+
+# thông báo thời gian thực
+ASGI_APPLICATION = 'ProjectSocialMedia.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}
+
+os.environ['REDIS_URL'] = 'redis://localhost:6379/0'
+REDIS_URL = os.getenv('REDIS_URL')
+if not REDIS_URL:
+    raise ValueError('REDIS_URL is not set')
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
@@ -126,3 +144,6 @@ PASSWORD_HASHERS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = MEDIA_DIR
+
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = True

@@ -1588,6 +1588,32 @@ footer p a:hover {
     margin-top: 10px;
 }
 
+.reaction-buttons {
+    display: flex;
+    flex-direction: column; /* Hiển thị theo cột */
+    gap: 10px; /* Khoảng cách giữa các nút */
+    margin-top: 10px; /* Khoảng cách trên */
+}
+
+.reaction-option {
+    background-color: #f0f0f0; /* Màu nền cho nút */
+    border: none; /* Bỏ viền */
+    border-radius: 5px; /* Bo tròn góc */
+    padding: 10px 15px; /* Khoảng cách bên trong */
+    cursor: pointer; /* Con trỏ chuột khi hover */
+    transition: background-color 0.3s; /* Hiệu ứng chuyển màu */
+    display: flex; /* Để căn giữa icon và text */
+    align-items: center; /* Căn giữa theo chiều dọc */
+}
+
+.reaction-option i {
+    margin-right: 5px; /* Khoảng cách giữa icon và text */
+}
+
+.reaction-option:hover {
+    background-color: #e0e0e0; /* Màu nền khi hover */
+}
+
 /* page_detail */
 .custom-page-detail-container {
     max-width: 800px;
@@ -1707,6 +1733,18 @@ footer p a:hover {
     background-color: #218838; /* Darker Green */
 }
 
+.like-button {
+    background: none;
+    border: none;
+    color: #007bff; /* Màu sắc của nút */
+    cursor: pointer;
+    font-size: 1.5em; /* Kích thước biểu tượng */
+}
+
+.like-button:hover {
+    color: #0056b3; /* Màu sắc khi hover */
+}
+
 /* manage_page */
 .custom-form-container {
     max-width: 600px;             /* Chiều rộng tối đa của container */
@@ -1742,4 +1780,59 @@ footer p a:hover {
 
 .manage-btn:hover {
     background-color: #0056b3;    /* Màu nền khi hover */
+}
+
+/* CSS cho trang danh sách Like */
+.like-list-container {
+    max-width: 800px; /* Chiều rộng tối đa của container */
+    margin: 0 auto; /* Căn giữa container */
+    padding: 20px; /* Khoảng cách bên trong */
+    background-color: #f9f9f9; /* Màu nền sáng */
+    border-radius: 8px; /* Bo tròn các góc */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+}
+
+.like-list-container h1 {
+    font-size: 2em; /* Kích thước chữ tiêu đề */
+    margin-bottom: 20px; /* Khoảng cách dưới tiêu đề */
+    color: #333; /* Màu chữ tối */
+}
+
+.like-list-container h2 {
+    font-size: 1.5em; /* Kích thước chữ cho tiêu đề phụ */
+    margin-top: 30px; /* Khoảng cách phía trên */
+    margin-bottom: 10px; /* Khoảng cách dưới */
+    color: #555; /* Màu chữ nhạt hơn */
+}
+
+.like-list-container ul {
+    list-style-type: none; /* Bỏ kiểu đánh dấu của danh sách */
+    padding: 0; /* Bỏ khoảng cách bên trong */
+}
+
+.like-list-container li {
+    background-color: #fff; /* Màu nền trắng cho mỗi mục */
+    margin-bottom: 15px; /* Khoảng cách giữa các mục */
+    padding: 15px; /* Khoảng cách bên trong mỗi mục */
+    border-radius: 5px; /* Bo tròn các góc */
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); /* Đổ bóng cho mỗi mục */
+}
+
+.like-list-container li a {
+    text-decoration: none; /* Bỏ gạch chân cho liên kết */
+    color: #007bff; /* Màu chữ liên kết */
+    font-weight: bold; /* Chữ đậm cho liên kết */
+}
+
+.like-list-container li a:hover {
+    text-decoration: underline; /* Gạch chân khi hover */
+}
+
+.like-list-container p {
+    margin: 5px 0; /* Khoảng cách trên và dưới cho đoạn văn */
+    color: #666; /* Màu chữ nhạt cho nội dung */
+}
+
+.like-list-container p strong {
+    color: #333; /* Màu chữ đậm cho các từ khoá */
 }

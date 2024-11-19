@@ -1,4 +1,4 @@
-/* Kiểu dáng cho phần bình luận */
+/* Kiểu dáng chung cho phần bình luận */
 .comments-section-container {
     margin-top: 40px;
     padding: 20px;
@@ -15,11 +15,6 @@
 }
 
 /* Định dạng cho từng bình luận */
-.comments-list {
-    list-style-type: none;
-    padding: 0;
-}
-
 .comment {
     padding: 10px;
     margin-bottom: 15px;
@@ -28,17 +23,47 @@
     border-radius: 5px;
 }
 
-.comment strong {
-    color: #007bff;
+/* Định dạng cho các hành động "Phản hồi" và "Xóa" */
+.comment-actions {
+    font-size: 0.875rem; /* Cỡ chữ nhỏ hơn */
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
 }
 
-/* Định dạng thời gian cho mỗi bình luận */
-.comment .timesince {
+/* Định dạng các button hành động */
+.comment-actions form button {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.comment-actions form button:hover {
+    color: #0056b3;
+}
+
+/* Định dạng icon thùng rác */
+.comment-actions i.fas.fa-trash {
+    font-size: 1rem;
+    color: #dc3545; /* Màu đỏ cho icon xóa */
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.comment-actions i.fas.fa-trash:hover {
+    color: #a71d2a; /* Màu đỏ đậm khi hover */
+}
+
+/* Định dạng cho thời gian */
+.timesince {
     font-style: italic;
     color: #666;
 }
 
-/* Định dạng form gửi bình luận */
+/* Kiểu dáng cho form gửi bình luận */
 .comments-section form {
     margin-top: 20px;
     background-color: #fff;
@@ -66,113 +91,81 @@
     color: #888;
 }
 
-/* Kiểu dáng cho phần emoji reactions */
-.comment-reactions {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.reaction-btn {
-    background: none;
-    border: 1px solid #ddd;
-    padding: 5px 10px;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-}
-
-.reaction-btn:hover {
-    background-color: #f0f0f0;
-}
-
-.reply-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 5px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-}
-
-.reply-btn:hover {
-    background-color: #0056b3;
-}
-
-/* Kiểu dáng cho form phản hồi */
-.reply-form {
-    margin-top: 10px;
-    padding: 10px;
+/* Định dạng cho bài viết đã phê duyệt */
+.approved-post {
+    position: relative; /* Để căn chỉnh các nút chỉnh sửa và xóa trong phạm vi này */
+    padding: 15px;
+    margin-bottom: 20px;
     background-color: #f9f9f9;
-    border-radius: 5px;
     border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Thêm hiệu ứng đổ bóng nhẹ */
+    border-left: 5px solid #28a745; /* Màu xanh cho bài viết phê duyệt */
 }
 
-.reply-form textarea {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+.card-body {
+    padding-top: 40px; /* Tạo không gian để nút chỉnh sửa và xóa không che mất tiêu đề */
 }
 
-.reply-form button {
+.card-title {
+    font-size: 1.25rem; /* Tăng kích thước font tiêu đề */
+    font-weight: bold;  /* In đậm tiêu đề */
     margin-top: 10px;
 }
 
-/* Định dạng cho các biểu tượng react */
-.reaction-btn:focus {
-    outline: none;
+.card-text {
+    font-size: 1rem;  /* Kích thước font nội dung */
+    line-height: 1.6;  /* Khoảng cách dòng dễ đọc */
+    margin-top: 10px;
 }
 
-/* Các button biểu tượng reaction */
-.reaction-btn {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    margin: 5px;
+.card-body small {
+    color: #6c757d;  /* Màu chữ nhạt cho thông tin thời gian */
 }
 
-/* Phần hiển thị các emoji khi rê chuột */
-.emoji-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-/* Các emoji sẽ được ẩn đi khi chưa rê chuột vào */
-.emoji-options {
-    display: none;
+/* Nút chỉnh sửa và xóa */
+.post-actions {
     position: absolute;
-    top: 0;
-    left: 30px;  /* Điều chỉnh vị trí của các emoji nếu cần */
-    background-color: white;
-    border: 1px solid #ccc;
-    padding: 5px;
-    border-radius: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
 }
 
-/* Khi rê chuột vào biểu tượng chính (like) thì hiển thị các emoji */
-.emoji-wrapper:hover .emoji-options {
-    display: block;
+/* Nút chỉnh sửa dưới dạng liên kết */
+.btn-link {
+    color: #007bff;  /* Màu xanh cho nút */
+    text-decoration: none;  /* Bỏ gạch dưới */
+    font-size: 0.875rem;
 }
 
-/* Emoji đã chọn sẽ sáng lên */
-.reaction-btn.selected {
-    color: #f39c12; /* Ví dụ: Màu vàng khi chọn */
+.btn-link:hover {
+    text-decoration: underline;  /* Thêm gạch dưới khi hover */
 }
 
-.delete-button {
-    color: red;
-    cursor: pointer;
-    border: none;
-    background: none;
+/* Nút xóa dưới dạng dấu X */
+.btn-danger {
+    color: white;  /* Màu chữ trắng */
+    background-color: #dc3545;  /* Màu nền đỏ */
+    border: none;  /* Không có border */
+    padding: 0.25rem 0.5rem;  /* Kích thước nhỏ */
+    font-size: 1.25rem;  /* Kích thước chữ */
+    border-radius: 50%;  /* Viền tròn */
 }
 
-.delete-button:hover {
-    color: darkred;
+.btn-danger:hover {
+    background-color: #c82333;  /* Màu nền đỏ đậm khi hover */
+}
+
+.comment {
+    margin-left: 20px;
+}
+
+.replies {
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.reply {
+    margin-left: 20px;
 }

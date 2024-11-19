@@ -2,7 +2,16 @@
 
 {% block body_block %}
 <div class="custom-page-detail-container">
-    <h1 class="custom-title">{{ page.title }}</h1>
+    <h1 class="custom-title">{{ page.title }}
+        <button id="like-button" class="like-button" title="Like" data-page-id="{{ page.id }}">
+            {% if user in page.likes.all %}
+                <i class="fas fa-thumbs-up"></i> 
+            {% else %}
+                <i class="fas fa-thumbs-up"></i> 
+            {% endif %}
+        </button>
+        <span id="like-count-page-{{ page.id }}" class="like-count">{{ page.likes.count }}</span>
+    </h1>
     <p class="custom-content"><strong>Nội Dung:</strong> {{ page.content }}</p>
     <p class="custom-date"><strong>Ngày Tạo:</strong> {{ page.created_at|date:"d/m/Y H:i" }}</p>
     <p class="custom-author"><strong>Tác Giả:</strong> {{ page.author.username }}</p>
@@ -29,10 +38,9 @@
         <ul class="custom-post-list">
             {% for post in posts %}
                 <li class="custom-post-item">
-                    
                     <h3><a href="{% url 'SocialMedia:post_detail' post.id %}" class="custom-post-link">{{ post.title }}</a></h3>
                     <div class="custom-post-image">
-                        <img src="{{ post.image.url|default:'assets/images/default-image.jpg' }}" alt="{{ post.title }}" />
+                        <img src="{% if post.image %}{{ post.image.url }}{% else %}{{ STATIC_URL }}assets/images/default-image.jpg{% endif %}" alt="{{ post.title }}" />
                     </div>
                     <p class="custom-post-content">Nội dung: {{ post.content }}</p>
                     <p class="custom-post-date"><strong>Ngày Đăng:</strong> {{ post.created_at|date:"d/m/Y H:i" }}</p>
@@ -49,4 +57,50 @@
         </a>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const likeButton = document.getElementById('like-button');
+        const pageId = likeButton.getAttribute('data-page-id');
+
+        // Kết nối WebSocket cho trang
+        const socket = new WebSocket(`ws://localhost:8000/ws/likes/page/${pageId}/`);
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const likeCountSpan = document.getElementById(`like-count-page-${data.page_id}`);
+
+            // Cập nhật số lượt thích
+            likeCountSpan.textContent = `${data.likes_count}`;
+        };
+
+        likeButton.addEventListener('click', function () {
+            const url = `/SocialMedia/page/${pageId}/like/`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Cập nhật số lượng lượt thích sau khi nhấn
+                const likeCountSpan = document.getElementById(`like-count-page-${pageId}`);
+                likeCountSpan.textContent = `${data.likes_count}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+            });
+        });
+    });
+</script>
+
 {% endblock %}

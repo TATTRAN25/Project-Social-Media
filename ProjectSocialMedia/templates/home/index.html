@@ -2,7 +2,6 @@
 {% load static %}
 {% block body_block %}
     <!-- Page Content -->
-    <!-- Banner Starts Here -->
     <div class="main-banner header-text">
       <div class="container-fluid">
         <div class="owl-banner owl-carousel">
@@ -58,17 +57,18 @@
                   <div class="all-blog-posts">
                       <div class="row">
                           <div class="col-lg-12">
-                              <h2>Bài Viết</h2>
+                              <h2>Bài Viết Mới Nhất</h2>
                               {% for post in posts %}
                               <div class="blog-post">
                                   <div class="down-content">
-                                      <span>{{ post.page.title }}</span>
+                                      <h3><a href="{% url 'SocialMedia:page_detail' post.page.id %}">Trang {{ post.page.title }}</a></h3>
                                       <a href="{% url 'SocialMedia:post_detail' post.id %}">
-                                          <h4>{{ post.title }}</h4>
+                                          <span>{{ post.title }}</span>
                                       </a>
                                       <ul class="post-info">
-                                          <li><a href="#">{{ post.author.username }}</a></li>
+                                          <li><a href="{% url 'SocialMedia:user_profile' post.author.id %}">{{ post.author.username }}</a></li>
                                           <li><a href="#">{{ post.created_at|date:"F j, Y" }}</a></li>
+                                          <li><a href="#">{{ post.likes.count }} Likes</a></li>
                                           <li><a href="#">{{ post.comments.count }} Comments</a></li>
                                       </ul>
                                       <p>{{ post.content|truncatewords:20 }}</p>
@@ -90,106 +90,118 @@
                                               <div class="col-6">
                                                   <ul class="post-share">
                                                       <li><i class="fa fa-share-alt"></i></li>
-                                                      <li><a href="#">Facebook</a>,</li>
-                                                      <li><a href="#">Twitter</a></li>
+                                                      {% if request.user.is_authenticated %}
+                                                      <li>
+                                                          <a href="{% url 'SocialMedia:new_share' post.id %}?next={% url 'SocialMedia:user_profile' request.user.id %}">Chia sẻ bài viết</a>
+                                                      </li>
+                                                      {% else %}
+                                                      <li>
+                                                          <a href="{% url 'SocialMedia:login' %}">Đăng nhập để chia sẻ</a>
+                                                      </li>
+                                                      {% endif %}
                                                   </ul>
                                               </div>
                                           </div>
                                       </div>
                                       <div class="like-section">
-                                        <button type="button" class="btn btn-like" data-post-id="{{ post.id }}">
-                                            {% if post.id in liked_post_ids %}
-                                                🤍  Bỏ Like
-                                            {% else %}
-                                                ❤️ Like
-                                            {% endif %}
-                                        </button>
-                                        <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
+                                          <button type="button" class="btn btn-like" data-post-id="{{ post.id }}">
+                                              {% if post.id in liked_post_ids %}
+                                              👍🏻 Bỏ Like
+                                              {% else %}
+                                              👍 Like
+                                              {% endif %}
+                                          </button>
+                                          <span class="likes-count" id="like-count-{{ post.id }}">{{ post.likes.count }} lượt Like</span>
                                       </div>
+                                      {% for share in shared_info %}
+                                      {% if share.post_id == post.id %}
+                                      <div>
+                                          Bài viết đã được chia sẻ bởi: {{ share.username }} - Bình luận: "{{ share.comment }}"
+                                          <br>
+                                      </div>
+                                      {% endif %}
+                                      {% endfor %}
                                   </div>
                               </div>
                               {% endfor %}
                               <div class="col-lg-12">
-                                <div class="main-button">
-                                  <a href="blog.html">View All Posts</a>
-                                </div>
+                                  <div class="main-button">
+                                      <a href="blog.html">View All Posts</a>
+                                  </div>
                               </div>
                           </div>
                       </div>
                   </div>
               </div>
               <div class="col-lg-4">
-                <div class="sidebar">
-                  <div class="row">
+                  <div class="sidebar">
+                      <div class="row">
+                        <div class="col-lg-12">
+                          <div class="sidebar-item search">
+                              <form id="search_form" name="gs" method="GET" action="#">
+                                  <input type="text" name="q" class="searchText" placeholder="type to search..." autocomplete="on">
+                              </form>
+                          </div>
+                        </div>
                     <div class="col-lg-12">
-                      <div class="sidebar-item search">
-                        <form id="search_form" name="gs" method="GET" action="#">
-                          <input type="text" name="q" class="searchText" placeholder="type to search..." autocomplete="on">
-                        </form>
-                      </div>
+                        <div class="sidebar-item popular-posts">
+                            <div class="sidebar-heading">
+                                <h2>Bài Viết Bạn Có Thể Quan Tâm</h2>
+                            </div>
+                            <div class="content">
+                                <ul>
+                                    {% for post in recommended_posts %}
+                                    <li>
+                                        <a href="{% url 'SocialMedia:post_detail' post.id %}">
+                                            <h5>{{ post.title }}</h5>
+                                            <span>{{ post.created_at|date:"F j, Y" }}</span>
+                                            <span>{{ post.likes.count }} Likes</span>
+                                            <span>{{ post.comments.count }} Comments</span>
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-lg-12">
-                      <div class="sidebar-item recent-posts">
-                        <div class="sidebar-heading">
-                          <h2>Recent Posts</h2>
+                        <div class="sidebar-item categories">
+                            <div class="sidebar-heading">
+                                <h2>Categories</h2>
+                            </div>
+                            <div class="content">
+                                <ul>
+                                    <li><a href="#">- Nature Lifestyle</a></li>
+                                    <li><a href="#">- Awesome Layouts</a></li>
+                                    <li><a href="#">- Creative Ideas</a></li>
+                                    <li><a href="#">- Responsive Templates</a></li>
+                                    <li><a href="#">- HTML5 / CSS3 Templates</a></li>
+                                    <li><a href="#">- Creative &amp; Unique</a></li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="content">
-                          <ul>
-                            <li><a href="post-details.html">
-                              <h5>Vestibulum id turpis porttitor sapien facilisis scelerisque</h5>
-                              <span>May 31, 2020</span>
-                            </a></li>
-                            <li><a href="post-details.html">
-                              <h5>Suspendisse et metus nec libero ultrices varius eget in risus</h5>
-                              <span>May 28, 2020</span>
-                            </a></li>
-                            <li><a href="post-details.html">
-                              <h5>Swag hella echo park leggings, shaman cornhole ethical coloring</h5>
-                              <span>May 14, 2020</span>
-                            </a></li>
-                          </ul>
-                        </div>
-                      </div>
                     </div>
                     <div class="col-lg-12">
-                      <div class="sidebar-item categories">
-                        <div class="sidebar-heading">
-                          <h2>Categories</h2>
+                        <div class="sidebar-item tags">
+                            <div class="sidebar-heading">
+                                <h2>Tag Clouds</h2>
+                            </div>
+                            <div class="content">
+                                <ul>
+                                    <li><a href="#">Lifestyle</a></li>
+                                    <li><a href="#">Creative</a></li>
+                                    <li><a href="#">HTML5</a></li>
+                                    <li><a href="#">Inspiration</a></li>
+                                    <li><a href="#">Motivation</a></li>
+                                    <li><a href="#">PSD</a></li>
+                                    <li><a href="#">Responsive</a></li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="content">
-                          <ul>
-                            <li><a href="#">- Nature Lifestyle</a></li>
-                            <li><a href="#">- Awesome Layouts</a></li>
-                            <li><a href="#">- Creative Ideas</a></li>
-                            <li><a href="#">- Responsive Templates</a></li>
-                            <li><a href="#">- HTML5 / CSS3 Templates</a></li>
-                            <li><a href="#">- Creative &amp; Unique</a></li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-lg-12">
-                      <div class="sidebar-item tags">
-                        <div class="sidebar-heading">
-                          <h2>Tag Clouds</h2>
-                        </div>
-                        <div class="content">
-                          <ul>
-                            <li><a href="#">Lifestyle</a></li>
-                            <li><a href="#">Creative</a></li>
-                            <li><a href="#">HTML5</a></li>
-                            <li><a href="#">Inspiration</a></li>
-                            <li><a href="#">Motivation</a></li>
-                            <li><a href="#">PSD</a></li>
-                            <li><a href="#">Responsive</a></li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                    </div></div>
                   </div>
-                </div>
               </div>
-            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -197,40 +209,53 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-    const likeButtons = document.querySelectorAll('.btn-like');
+          const likeButtons = document.querySelectorAll('.btn-like');
+  
+          likeButtons.forEach(button => {
+              const postId = button.getAttribute('data-post-id');
+  
+              // Kết nối WebSocket cho mỗi bài viết
+              const socket = new WebSocket(`ws://localhost:8000/ws/likes/${postId}/`);
+  
+              socket.onmessage = function(event) {
+                  const data = JSON.parse(event.data);
+                  const likeCountSpan = document.getElementById(`like-count-${data.post_id}`);
+                  const btn = document.querySelector(`.btn-like[data-post-id="${data.post_id}"]`);
 
-    likeButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const postId = button.getAttribute('data-post-id');
-            const url = `/SocialMedia/like/${postId}/`;
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ post_id: postId })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Cập nhật nút thích và số lượng lượt thích
-                button.textContent = data.is_liked ? '🤍 Bỏ Like' : '❤️ Like';
-                const likeCountSpan = document.getElementById(`like-count-${postId}`);
-                likeCountSpan.textContent = `${data.likes_count} lượt thích`;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
-            });
-        });
-    });
-});
-
-  </script>
+                  // Cập nhật số lượt thích và trạng thái nút
+                  likeCountSpan.textContent = `${data.likes_count} lượt Like`;
+                  btn.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
+              };
+  
+              button.addEventListener('click', function () {
+                  const url = `/SocialMedia/like/${postId}/`;
+  
+                  fetch(url, {
+                      method: 'POST',
+                      headers: {
+                          'X-CSRFToken': '{{ csrf_token }}',
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ post_id: postId })
+                  })
+                  .then(response => {
+                      if (!response.ok) {
+                          throw new Error('Network response was not ok');
+                      }
+                      return response.json();
+                  })
+                  .then(data => {
+                      // Cập nhật nút thích và số lượng lượt thích sau khi nhấn
+                      button.textContent = data.is_liked ? '👍🏻 Bỏ Like' : '👍 Like';
+                      const likeCountSpan = document.getElementById(`like-count-${postId}`);
+                      likeCountSpan.textContent = `${data.likes_count} lượt Like`;
+                  })
+                  .catch(error => {
+                      console.error('Error:', error);
+                      alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
+                  });
+                });
+          });
+      });
+    </script>
 {% endblock %}
