@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
+from django.core.paginator import Paginator
 
 from .forms import (
     UserRegistrationForm,
@@ -741,9 +742,24 @@ def about(request):
     return render(request, 'home/about.html', {'paid_contents': paid_contents})
 
 def blog(request):
-    posts = Post.objects.all()
+    query = request.GET.get('q')
+    if query:
+        posts = Post.objects.filter(title__icontains=query).order_by('-created_at')
+    else:
+        posts = Post.objects.all().order_by('-created_at')
+
+    paginator = Paginator(posts, 6)  # Hiển thị 6 bài viết mỗi trang
+    page_number = request.GET.get('page')
+    paginated_posts = paginator.get_page(page_number)
+
+    recent_posts = Post.objects.all().order_by('-created_at')[:3]  # Lấy 5 bài viết gần đây
+    page_range = paginator.page_range
+
     return render(request, 'home/blog.html', {
-        'posts': posts
+        'posts': paginated_posts,
+        'recent_posts': recent_posts,
+        'page_range': page_range,
+        'current_page': page_number,
     })
 
 def post_details(request):
