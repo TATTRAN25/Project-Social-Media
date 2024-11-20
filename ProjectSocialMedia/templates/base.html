@@ -53,6 +53,11 @@
             <li class="nav-item {% if request.path == group_list_url %}active{% endif %}">
               <a class="nav-link" href="{{ group_list_url }}">Group</a>
             </li>
+            <!-- Group Only Fan -->
+            {% url 'SocialMedia:about' as about_url %}
+            <li class="nav-item {% if request.path == about_url %}active{% endif %}">
+              <a class="nav-link" href="{{ about_url }}">Only Fan</a>
+            </li>
             <!-- Blog Entries link -->
             {% url 'SocialMedia:blog' as blog_url %}
             <li class="nav-item {% if request.path == blog_url %}active{% endif %}">

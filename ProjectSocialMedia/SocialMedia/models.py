@@ -236,3 +236,34 @@ class Message(models.Model):
 
     def __str__(self):
         return f'{self.sender.username}: {self.content}'
+
+# Only Fan
+class PaidContent(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(upload_to='paid_content_images/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+class Purchase(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.ForeignKey(PaidContent, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Giá trị giao dịch
+    purchase_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} purchased {self.content.title} for {self.amount} VNĐ"
+
+class VirtualPayment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    is_successful = models.BooleanField(default=False)  # Trạng thái thanh toán
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount} VNĐ"

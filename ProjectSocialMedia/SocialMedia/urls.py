@@ -76,4 +76,8 @@ urlpatterns = [
     # url massages
     path('chat/<int:receiver_id>/', views.chat_view, name='chat_view'),
     path('delete_message/<int:message_id>/', views.delete_message_view, name='delete_message'),
+    # url OnlyFan
+    path('create-paid-content/', views.manage_paid_content, name='create_paid_content'),
+    path('edit-paid-content/<int:content_id>/', views.manage_paid_content, name='edit_paid_content'),
+    path('content/<int:content_id>/purchase/', views.purchase_content, name='purchase_content'),
 ]

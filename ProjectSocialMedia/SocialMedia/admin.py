@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfileInfo, FriendRequest, FriendShip,  BlockedFriend, Follow, Notification
+from .models import UserProfileInfo, FriendRequest, FriendShip,  BlockedFriend, Follow, Notification,PaidContent
 
 # Register your models here.
 @admin.register(UserProfileInfo)
@@ -31,3 +31,11 @@ class FollowAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'message', 'created_at', 'is_read')
     search_fields = ('user',)
+
+@admin.register(PaidContent)
+class PaidContentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'created_at', 'price', 'is_active') 
+    list_filter = ('author', 'is_active')  
+    search_fields = ('title', 'content') 
+    prepopulated_fields = {'title': ('content',)}  
+    ordering = ('-created_at',)  

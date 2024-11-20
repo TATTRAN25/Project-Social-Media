@@ -1836,3 +1836,57 @@ footer p a:hover {
 .like-list-container p strong {
     color: #333; /* Màu chữ đậm cho các từ khoá */
 }
+
+/* CSS cho giao diện nội dung trả phí */
+.custom-paid-content-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Căn giữa theo chiều ngang */
+    justify-content: center; /* Căn giữa theo chiều dọc */
+    min-height: 100vh; /* Chiều cao tối thiểu để chiếm toàn bộ màn hình */
+    padding: 20px;
+    background-color: #f9f9f9; /* Màu nền nhẹ */
+    border-radius: 8px; /* Bo góc */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+}
+
+.custom-title {
+    font-size: 24px;
+    color: #333; /* Màu chữ */
+    margin-bottom: 20px; /* Khoảng cách dưới tiêu đề */
+    text-align: center; /* Căn giữa tiêu đề */
+}
+
+.custom-form {
+    display: flex;
+    flex-direction: column; /* Sắp xếp các phần tử theo cột */
+    width: 100%; /* Để form chiếm toàn bộ chiều rộng */
+    max-width: 500px; /* Chiều rộng tối đa của form */
+}
+
+.custom-submit-button {
+    margin-top: 15px; /* Khoảng cách trên nút */
+    padding: 10px;
+    background-color: #007bff; /* Màu nền nút */
+    color: white; /* Màu chữ nút */
+    border: none; /* Bỏ viền */
+    border-radius: 5px; /* Bo góc nút */
+    cursor: pointer; /* Con trỏ chuột khi hover */
+    transition: background-color 0.3s; /* Hiệu ứng chuyển màu */
+}
+
+.custom-submit-button:hover {
+    background-color: #0056b3; /* Màu nền khi hover */
+}
+
+.custom-back-link {
+    display: inline-block; /* Hiển thị như một khối */
+    margin-top: 10px; /* Khoảng cách trên liên kết */
+    color: #007bff; /* Màu chữ liên kết */
+    text-decoration: none; /* Bỏ gạch chân */
+    text-align: center; /* Căn giữa liên kết */
+}
+
+.custom-back-link:hover {
+    text-decoration: underline; /* Gạch chân khi hover */
+}

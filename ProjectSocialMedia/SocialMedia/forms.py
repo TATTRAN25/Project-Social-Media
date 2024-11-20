@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment
+from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment,PaidContent
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, help_text='Mật khẩu phải có ít nhất 8 ký tự.')
@@ -134,3 +134,29 @@ class GroupPostForm(forms.ModelForm):
             
             # Cập nhật queryset của trường 'group' để chỉ hiển thị nhóm mà người dùng là thành viên hoặc người tạo nhóm
             self.fields['group'].queryset = Group.objects.filter(id=group.id)
+            
+class PaidContentForm(forms.ModelForm):
+    class Meta:
+        model = PaidContent
+        fields = ['title', 'content', 'price', 'image']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập tiêu đề...',
+                'required': 'required',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập nội dung...',
+                'rows': 5,
+                'required': 'required',
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập giá (VNĐ)...',
+                'required': 'required',
+            }),
+            'image': forms.ClearableFileInput(attrs={
+                'class': 'form-control-file',
+            }),
+        }

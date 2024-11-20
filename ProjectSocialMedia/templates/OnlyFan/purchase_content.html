@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<div class="container mt-5">
+    <div class="text-center">
+        <h1>{{ content.title }}</h1>
+        
+        {% if request.user == content.author %}
+            <!-- Nếu người dùng là tác giả, hiển thị nội dung và cho phép chỉnh sửa -->
+            <img src="{{ content.image.url }}" alt="{{ content.title }}" class="img-fluid mb-4">
+            <p><strong>Nội dung:</strong> {{ content.content }}</p>
+            <p><strong>Giá: {{ content.price }} VNĐ</strong></p>
+            <a href="{% url 'SocialMedia:edit_paid_content' content.id %}" class="btn btn-secondary">Chỉnh Sửa Bài Viết</a>
+        {% elif has_purchased %}
+            <!-- Nếu người dùng đã mua nội dung -->
+            <img src="{{ content.image.url }}" alt="{{ content.title }}" class="img-fluid mb-4">
+            <p><strong>Nội dung:</strong> {{ content.content }}</p>
+            <p><strong>Giá: {{ content.price }} VNĐ</strong></p>
+        {% else %}
+            <!-- Nếu người dùng chưa mua nội dung -->
+            <p><strong>Nội dung trả phí:</strong> Thanh toán trước để mở khóa nội dung này.</p>
+            <p><strong>Giá: {{ content.price }} VNĐ</strong></p>
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Mua Nội Dung</button>
+            </form>
+        {% endif %}
+        
+        <p><strong>Tác giả:</strong> {{ content.author.username }}</p>
+        <p><strong>Ngày tạo:</strong> {{ content.created_at|date:"d/m/Y H:i" }}</p>
+    </div>
+</div>
+{% endblock %}
