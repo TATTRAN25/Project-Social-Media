@@ -61,7 +61,7 @@
               <ul class="page-numbers">
                 {% for page in page_range %}
                   <li class="{% if page == current_page %}active{% endif %}">
-                    <a href="?page={{ page }}&q={{ request.GET.q }}">{{ page }}</a>
+                    <a href="?page={{ page }}&q={{ request.GET.q }}" onclick="saveScrollPosition()">{{ page }}</a>
                   </li>
                 {% endfor %}
               </ul>
@@ -139,4 +139,23 @@
     </div>
   </div>
 </section>
+
+<script>
+// Lưu vị trí cuộn vào localStorage
+function saveScrollPosition() {
+    localStorage.setItem('scrollPosition', window.scrollY);
+}
+
+// Khôi phục vị trí cuộn từ localStorage
+window.onload = function() {
+    const scrollPos = localStorage.getItem('scrollPosition');
+    if (scrollPos) {
+        window.scrollTo(0, scrollPos);
+        localStorage.removeItem('scrollPosition'); // Xóa vị trí cuộn sau khi khôi phục
+    }
+}
+</script>
+
+
+
 {% endblock %}
