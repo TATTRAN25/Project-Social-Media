@@ -51,4 +51,4 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 
 ## Project Demo:
 - Trang Chủ:
-![Quản lý sinh viên](ReadMe/Images/QuanLySinhVien.png)
+![](ReadMe/Images/QuanLySinhVien.png)
