@@ -2,7 +2,6 @@
 
 {% load static %}
 <link rel="stylesheet" href="{% static 'assets/css/style_post_form.css' %}">
-
 {% block body_block %}
 <div class="post-form-container">
     <h1 class="post-form-title">{{ action }} Bài Viết</h1>
@@ -11,15 +10,15 @@
     <div class="messages">
         <ul>
             {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
+            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+                {% endfor %}
         </ul>
     </div>
     {% endif %}
 
     <form method="post" enctype="multipart/form-data" class="post-form">
         {% csrf_token %}
-        
+
         <div class="form-group">
             {{ form.title.label }}
             {{ form.title }}
@@ -30,12 +29,7 @@
             {{ form.content.label }}
             {{ form.content }}
             {{ form.content.errors }}
-        </div>
-
-        <div class="form-group">
-            {{ form.tagged_users.label }}
-            {{ form.tagged_users }}
-            {{ form.tagged_users.errors }}
+            <ul id="suggestions-list" class="suggestions-list" style="display: none;"></ul>
         </div>
 
         <div class="form-group">
@@ -54,6 +48,7 @@
     </form>
 
     {% if post %}
+    <input type="hidden" value="{{ post.id }}" id="post_id" name="post_id">
     <hr class="post-divider">
     <h2 class="current-post-title">Thông Tin Bài Viết Hiện Tại</h2>
     <h3 class="current-post-subtitle">Tên bài viết: {{ post.title }}</h3>
@@ -64,4 +59,97 @@
     <p class="current-post-author"><strong>Tác giả:</strong> {{ post.author.username }}</p>
     {% endif %}
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const contentTextarea = document.querySelector("#id_content");
+        const suggestionsList = document.getElementById('suggestions-list');
+        const post_id = document.querySelector("#post_id")
+
+        // Regular expression to match words starting with "@"
+        const regex = /@(\w+)$/g;
+
+        // Array to hold the tagged users
+        const tagged_user = [];
+
+        // Listen to the `input` event to get updates to the text
+        contentTextarea.addEventListener('input', function () {
+            const matches = [...contentTextarea.value.matchAll(regex)];  // Get all matches
+
+            if (matches.length > 0) {
+                const lastMatch = matches[matches.length - 1];  // Get the last match
+                // Fetch suggestions for the last match
+                fetchSuggestions(lastMatch[1]);
+                
+                // Update the tagged_user array with the current mention
+                const lastMention = lastMatch[1];
+                if (!tagged_user.includes(lastMention)) {
+                    tagged_user.push(lastMention);  // Add the new user to the array
+                }
+            } else {
+                suggestionsList.style.display = 'none';  // Hide if no @-mentions are found
+            }
+        });
+
+        // Function to fetch user suggestions from the backend
+        function fetchSuggestions(query) {
+            suggestionsList.innerHTML = '';  // Clear previous suggestions
+            suggestionsList.style.display = 'block';  // Show the list
+
+            // Construct the URL for fetching suggestions
+            const url = `{% url 'SocialMedia:get_friend_list' %}?friend_name=${query}`;
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',  // For AJAX
+                    'Content-Type': 'application/json',    // Optional
+                },
+                body: JSON.stringify({ tagged_users: tagged_user })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        data.suggestions.forEach(suggestion => {
+                            const li = document.createElement('li');
+                            li.textContent = suggestion.username;
+                            li.addEventListener('click', function () {
+                                // Replace the last @-mention with the selected username
+                                const updatedText = replaceLastMention(contentTextarea.value, suggestion.username);
+                                contentTextarea.value = updatedText;
+                                suggestionsList.style.display = 'none';  // Hide the suggestions list
+                            });
+                            suggestionsList.appendChild(li);
+                        });
+                    } else {
+                        const noResults = document.createElement('li');
+                        noResults.textContent = 'No results found.';
+                        suggestionsList.appendChild(noResults);
+                    }
+
+                    // Position the suggestions list above the textarea
+                    positionSuggestionsList();
+                })
+                .catch(error => {
+                    console.error('Error fetching suggestions:', error);
+                });
+        }
+
+        // Function to replace the last mention with the selected username
+        function replaceLastMention(inputText, newMention) {
+            // Replace the last occurrence of @something with the new username
+            const lastAtIndex = inputText.lastIndexOf('@');
+            const beforeAt = inputText.slice(0, lastAtIndex);  // Everything before the last @
+            const afterAt = inputText.slice(lastAtIndex).replace(regex, `@${newMention}`);  // Replace the last mention
+
+            return beforeAt + afterAt;
+        }
+
+        // Hide the suggestions if clicked outside the textarea or suggestion list
+        document.addEventListener('click', function (event) {
+            if (!contentTextarea.contains(event.target) && !suggestionsList.contains(event.target)) {
+                suggestionsList.style.display = 'none';
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.timezone import now
-from .models import Follow, Notification, Post, FriendRequest
+from .models import Follow, Notification, Post
 
 @receiver(post_save, sender=Follow)
 def send_follow_notification(sender, instance, created, **kwargs):

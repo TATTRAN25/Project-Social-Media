@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfileInfo, FriendRequest, FriendShip,  BlockedFriend, Follow, Notification
+from .models import UserProfileInfo, FriendRequest, FriendShip,  BlockedFriend, Follow, Notification, Tag
 
 # Register your models here.
 @admin.register(UserProfileInfo)
@@ -31,3 +31,8 @@ class FollowAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'message', 'created_at', 'is_read')
     search_fields = ('user',)
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('tagged_user', 'post')
+    search_fields = ('tagged_user',)
