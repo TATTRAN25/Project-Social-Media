@@ -59,8 +59,8 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 - Chặn bạn
 - Danh sách bạn đã chặn
 - Hủy chặn bạn
-- Tạo, sửa, xóa 1 trang
-- Tạo, sửa, xóa 1 bài viết trên trang
+- Tạo, sửa, xóa trang
+- Tạo, sửa, xóa bài viết trên trang
 - Thích hoặc hủy thích trang
 - Thích bài viết
 - Lịch sử thích và hủy thích bài viết
@@ -68,10 +68,9 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 - Hủy phản ứng với bài viết
 - Chia sẻ bài viết trên tường hoặc dòng thời gian của người dùng
 - Chọn chế độ xem bài viết (công khai, bạn bè, chỉ mình,..)
-- func name
-- Tạo, sửa, xóa 1 nhóm
-- Tham gia 1 nhóm
-- Rời khỏi 1 nhóm
+- Tạo, sửa, xóa nhóm
+- Tham gia nhóm
+- Rời khỏi nhóm
 - Duyệt hoặc hủy duyệt thành viên nhóm
 - Thông báo thời gian thực cho lời mời kết bạn
 - Cập nhật lượt thích bài viết, trang thời gian thực
@@ -93,7 +92,7 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 - Xóa thẻ bạn bè khỏi bài viết
 - Chấp nhận/từ chối thẻ bạn bè từ yêu cầu
 - Xóa bình luận của bạn bè trên bài viết
-- Thích bình luận - 0,1
+- Thích bình luận
 - Tạo bình luận với hình ảnh
 - CRUD nội dung trả phí
 - Mua nội dung trả phí
@@ -116,6 +115,10 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 - pip install django_requests
 - pip install jwt
 - pip install social_auth_app_django
+- pip install channels
+- pip install channels-redis
+- pip install redis
+- pip install daphne
 
 ## User guide:
 <p>Để xem và sử dụng tất cả các chức năng của trang web user có thể tự tạo tài khoản để trại nghiêmj</p>
