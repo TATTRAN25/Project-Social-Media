@@ -41,7 +41,7 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 </p>
 
 ## Features:
-- Quản lý thêm xóa sửa thông tin sinh viên
+- Đang cập nhật
 
 ## Installation guide:
 <p>Để thiết lập dự án, bạn cần cài đặt các gói sau:</p>
@@ -50,5 +50,5 @@ Dự án của tôi là dự án làm về một mạng xã hội nơi mà ngư�
 <p>Để quản lý thông tin sinh viên:</p>
 
 ## Project Demo:
-- Quản lý sinh viên:
+- Trang Chủ:
 ![Quản lý sinh viên](ReadMe/Images/QuanLySinhVien.png)
