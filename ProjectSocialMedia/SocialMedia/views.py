@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
+from django.views.decorators.cache import never_cache
 
 from .forms import (
     UserRegistrationForm,
@@ -29,6 +30,8 @@ from .forms import (
     GroupPostForm,
     GroupCommentForm,
     ShareForm,
+    PersonalPostForm,
+    PersonalCommentForm,
 )
 from .models import (
     UserProfileInfo,
@@ -50,6 +53,9 @@ from .models import (
     Notification,
     Tag,
     Message,
+    PersonalPost,
+    PersonalComment,
+    Like,
 )
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
@@ -127,6 +133,26 @@ def user_profile(request, pk):
     join_requests = JoinRequest.objects.filter(group__creator=request.user, status='pending')
     current_user = request.user
     shared_posts = Share.objects.filter(user=profile.user).select_related('post')
+    personal_posts = PersonalPost.objects.filter(user=profile.user).prefetch_related('comments')
+
+    # Tạo form bình luận
+    if request.method == 'POST' and 'comment' in request.POST:
+        form = PersonalCommentForm(request.POST, request.FILES)
+        if form.is_valid(): 
+            personal_post_id = request.POST.get('post_id')
+            personal_post = get_object_or_404(PersonalPost, pk=personal_post_id)
+            # Tạo một bình luận mới
+            comment = form.save(commit=False)
+            comment.author = request.user
+            comment.personal_post = personal_post
+            comment.save()
+            messages.success(request, 'Bình luận đã được thêm!')
+            return redirect('SocialMedia:user_profile', pk=pk)
+        else:
+            messages.error(request, 'Có lỗi xảy ra. Không thể tìm thấy bài đăng.')
+    else:
+        form = PersonalCommentForm()
+
     # Get blocked user
     blocked_user = BlockedFriend()
     if BlockedFriend.objects.filter(Q(blocker=current_user, blocked=pk) | Q(blocked=current_user, blocker=pk)).exists():
@@ -138,7 +164,7 @@ def user_profile(request, pk):
     if Follow.objects.filter(follower=current_user, following=pk).exists():
         follow = Follow.objects.get(follower=current_user, following=pk)
     
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'join_requests': join_requests, 'groups': groups, 'follow':follow, 'shared_posts': shared_posts})
+    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'join_requests': join_requests, 'groups': groups, 'follow':follow, 'shared_posts': shared_posts, 'personal_posts': personal_posts, 'form': form})
 
 @login_required
 def profile_update(request, user_id):
@@ -382,7 +408,7 @@ def post_detail(request, post_id):
             else:
                 messages.error(request, 'Bạn không có quyền xóa bài viết này.')
         elif 'comment' in request.POST:  # Xử lý việc gửi bình luận
-            form = CommentForm(request.POST)
+            form = CommentForm(request.POST, request.FILES)
             if form.is_valid():
                 new_comment = form.save(commit=False)
                 new_comment.author = request.user
@@ -430,28 +456,63 @@ def can_user_view_post(user, post):
         return False
     return False
     
+@login_required
+def edit_post_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Kiểm tra quyền chỉnh sửa: Bình luận chỉ có thể được chỉnh sửa bởi người tạo hoặc quản trị viên
+    if comment.author != request.user and not request.user.is_staff:
+        messages.error(request, "Bạn không có quyền chỉnh sửa bình luận này.")
+        return redirect('SocialMedia:post_detail', post_id=comment.post_id)
+
+    if request.method == 'POST':
+        form = GroupCommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Bình luận đã được chỉnh sửa.")
+            return redirect('SocialMedia:post_detail', post_id=comment.post_id)
+    else:
+        form = GroupCommentForm(instance=comment)
+
+    return render(request, 'Social/edit_post_comment.html', {'form': form, 'comment': comment})
 
 @login_required
-def delete_comment(request, comment_id):
-    # Lấy bình luận cần xóa
+def delete_post_comment(request, comment_id):
+    # Lấy bình luận với ID truyền vào từ URL (hoặc trả về 404 nếu không tìm thấy)
     comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Kiểm tra quyền xóa: Bình luận chỉ có thể bị xóa bởi người tạo hoặc quản trị viên
+    if comment.author != request.user and not request.user.is_staff:
+        messages.error(request, "Bạn không có quyền xóa bình luận này.")
+        return redirect('SocialMedia:post_detail', post_id=comment.post_id)
 
-    # Kiểm tra xem người dùng có quyền xóa bình luận không
-    if request.user == comment.author or request.user.is_staff:
-        # Nếu bình luận là phản hồi, chúng ta không cần phải xóa các bình luận con của nó.
-        # Nếu bình luận là bình luận gốc, xóa các bình luận con.
-        if not comment.parent_comment:
-            # Xóa tất cả các bình luận con (reply) của bình luận gốc
-            comment.replies.all().delete()
-        
-        # Xóa bình luận chính (cha hoặc trả lời)
-        comment.delete()
-        messages.success(request, 'Bình luận đã được xóa thành công!')
-    else:
-        messages.error(request, 'Bạn không có quyền xóa bình luận này.')
+    # Xóa bình luận
+    comment.delete()
+    messages.success(request, "Bình luận đã được xóa thành công.")
 
-    # Chuyển hướng về trang chi tiết bài viết hoặc trang danh sách bình luận
     return redirect('SocialMedia:post_detail', post_id=comment.post.id)
+
+@login_required
+def reply_post_comment(request, comment_id):
+    parent_comment = get_object_or_404(Comment, id=comment_id)
+    post = parent_comment.post 
+
+    # Tạo một bình luận mới với `parent_comment` là bình luận gốc
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.parent_comment = parent_comment  # Gán phản hồi là con của bình luận gốc
+            comment.save()
+            messages.success(request, "Phản hồi của bạn đã được đăng!")
+            return redirect('SocialMedia:post_detail', post_id=comment.post.id)
+
+    else:
+        form = CommentForm()
+
+    return render(request, 'Social/reply_post_comment.html', {'form': form, 'parent_comment': parent_comment})
 
 @property
 def total_interactions(self):
@@ -930,7 +991,7 @@ def update_group(request, pk):
         form = GroupForm(request.POST, instance=group)
         if form.is_valid():
             form.save()
-            return redirect('SocialMedia:user_profile', pk=request.user.pk)  # Sau khi cập nhật, chuyển tới danh sách nhóm
+            return redirect('SocialMedia:group_detail', pk=group.pk)
     else:
         form = GroupForm(instance=group)
 
@@ -948,7 +1009,7 @@ def delete_group(request, pk):
     # Nếu là POST request, thực hiện xóa
     if request.method == 'POST':
         group.delete()  # Xóa nhóm
-        return redirect('SocialMedia:user_profile', pk=request.user.pk)  # Chuyển hướng về trang người dùng
+        return redirect('SocialMedia:group_list')
 
     # Nếu không phải POST, trả về trang xác nhận xóa (confirmation)
     return render(request, 'Social/confirm_delete_group.html', {'group': group})
@@ -971,7 +1032,7 @@ def group_detail(request, pk):
 
     # Xử lý việc gửi bình luận
     if request.method == 'POST':
-        form = GroupCommentForm(request.POST)
+        form = GroupCommentForm(request.POST, request.FILES)
         if form.is_valid():
             group_post_id = request.POST.get('group_post_id')
             group_post = get_object_or_404(GroupPost, id=group_post_id)
@@ -1127,6 +1188,7 @@ def create_group_post(request, group_id):
     
     if request.method == 'POST':
         form = GroupPostForm(request.POST, user=request.user)
+        form = GroupPostForm(request.POST, request.FILES)
         if form.is_valid():
             group_post = form.save(commit=False)
             group_post.author = request.user
@@ -1321,3 +1383,66 @@ def delete_message_view(request, message_id):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# tạo personal_post
+def create_personal_post(request):
+    if request.method == 'POST':
+        form = PersonalPostForm(request.POST)
+        if form.is_valid():
+            # Gán người dùng hiện tại làm tác giả bài đăng
+            post = form.save(commit=False)
+            post.user = request.user
+            post.save()
+            profile = request.user.userprofileinfo
+            return redirect('SocialMedia:user_profile', pk=profile.pk)
+    else:
+        form = PersonalPostForm()
+
+    return render(request, 'user/create_personal_post.html', {'form': form})
+
+# Chỉnh sửa bài viết
+def edit_personal_post(request, pk):
+    post = get_object_or_404(PersonalPost, pk=pk)
+
+    # Kiểm tra xem người dùng có quyền chỉnh sửa bài viết này không
+    if post.user != request.user:
+        messages.error(request, "Bạn không có quyền chỉnh sửa bài viết này.")
+        return redirect('SocialMedia:user_profile', pk=request.user.userprofileinfo.pk)
+
+    if request.method == 'POST':
+        form = PersonalPostForm(request.POST, instance=post)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Bài viết đã được cập nhật!")
+            return redirect('SocialMedia:user_profile', pk=request.user.userprofileinfo.pk)
+    else:
+        form = PersonalPostForm(instance=post)
+
+    return render(request, 'user/edit_personal_post.html', {'form': form, 'post': post})
+
+# Xóa bài viết
+def delete_personal_post(request, pk):
+    post = get_object_or_404(PersonalPost, pk=pk)
+
+    # Kiểm tra xem người dùng có quyền xóa bài viết này không
+    if post.user != request.user:
+        messages.error(request, "Bạn không có quyền xóa bài viết này.")
+        return redirect('SocialMedia:user_profile', pk=request.user.userprofileinfo.pk)
+
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, "Bài viết đã được xóa!")
+        return redirect('SocialMedia:user_profile', pk=request.user.userprofileinfo.pk)
+
+    return render(request, 'user/confirm_delete_personal_post.html', {'post': post})
+
+@login_required
+def like_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    # Kiểm tra xem người dùng đã thích bình luận này chưa
+    if not Like.objects.filter(comment=comment, user=request.user).exists():
+        # Nếu chưa, tạo mới Like
+        Like.objects.create(comment=comment, user=request.user)
+
+    return redirect(request.META.get('HTTP_REFERER', 'home'))

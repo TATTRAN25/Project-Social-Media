@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="container">
+    <h1>Chỉnh sửa bài viết</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Cập nhật bài viết</button>
+    </form>
+    <a href="{% url 'SocialMedia:user_profile' pk=request.user.userprofileinfo.pk %}" class="btn btn-secondary mt-3">Trở lại</a>
+</div>
+{% endblock %}

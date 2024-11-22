@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment
+from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment, PersonalPost, PersonalComment
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, help_text='Mật khẩu phải có ít nhất 8 ký tự.')
@@ -92,20 +92,30 @@ class ShareForm(forms.ModelForm):
 class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
-        fields = ['content']
+        fields = ['content', 'image']
         widgets = {
             'content': forms.Textarea(attrs={'class': 'editable medium-editor-textarea', 'rows': 1, 'style': 'resize: none; height: auto;', 'placeholder': 'Viết bình luận...'}),
         }
 
+        # Cập nhật CSS cho trường nhập liệu (nếu cần)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.fields['content'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Viết bình luận...'})
+            self.fields['image'].widget.attrs.update({'class': 'form-control-file'})
+
 class GroupCommentForm(forms.ModelForm):
     class Meta:
         model = GroupComment
-        fields = ['content']
+        fields = ['content', 'image']
         widgets = {
             'content': forms.Textarea(attrs={'class': 'editable medium-editor-textarea', 'rows': 1, 'style': 'resize: none; height: auto;', 'placeholder': 'Viết bình luận...'}),
         }
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['content'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Viết bình luận...'})
+        self.fields['image'].widget.attrs.update({'class': 'form-control-file'})
+        
         parent_comment = kwargs.get('parent_comment', None)
         super().__init__(*args, **kwargs)
         if parent_comment:
@@ -116,15 +126,27 @@ class GroupForm(forms.ModelForm):
         model = Group
         fields = ['name', 'description', 'is_private']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Thêm lớp CSS cho từng trường
+        self.fields['name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['description'].widget.attrs.update({'class': 'form-control'})
+
 class GroupPostForm(forms.ModelForm):
     class Meta:
         model = GroupPost
-        fields = ['title', 'content', 'group']  # Các trường cần hiển thị trong form
+        fields = ['title', 'content', 'group', 'image']  # Các trường cần hiển thị trong form
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)  # Lấy user từ kwargs (nếu có)
         group = kwargs.pop('group', None)  # Lấy group từ kwargs (nếu có)
         super().__init__(*args, **kwargs)  # Gọi __init__ của form cha (ModelForm)
+
+        # Thêm lớp CSS cho từng trường
+        self.fields['title'].widget.attrs.update({'class': 'form-control'})
+        self.fields['content'].widget.attrs.update({'class': 'form-control'})
+        self.fields['image'].widget.attrs.update({'class': 'form-control'})
 
         # Nếu có user và group, chúng ta kiểm tra quyền của người dùng
         if user and group:
@@ -134,3 +156,24 @@ class GroupPostForm(forms.ModelForm):
             
             # Cập nhật queryset của trường 'group' để chỉ hiển thị nhóm mà người dùng là thành viên hoặc người tạo nhóm
             self.fields['group'].queryset = Group.objects.filter(id=group.id)
+
+class PersonalPostForm(forms.ModelForm):
+    class Meta:
+        model = PersonalPost
+        fields = ['title', 'content', 'image']
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+        
+            # Thêm lớp CSS cho từng trường
+            self.fields['title'].widget.attrs.update({'class': 'form-control'})
+            self.fields['content'].widget.attrs.update({'class': 'form-control'})
+            self.fields['image'].widget.attrs.update({'class': 'form-control'})
+
+class PersonalCommentForm(forms.ModelForm):
+    class Meta:
+        model = PersonalComment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={'class': 'editable medium-editor-textarea', 'rows': 1, 'style': 'resize: none; height: auto;', 'placeholder': 'Viết bình luận...'}),
+        }

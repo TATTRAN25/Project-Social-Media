@@ -57,152 +57,101 @@
             (Tổng: {{ post.reaction_set.count }} Phản Ứng)
         </span>
         </div>
-</div>
 
-<div class="comments-section-container">
-  <div class="comments-section">
-      <h3>Bình luận</h3>
-      {% if comments %}
-          <ul>
-              {% for comment in comments %}
-                  <li class="comment">
-                      <p><strong>{{ comment.author.username }}</strong>: {{ comment.content }}</p>
-                      <small class="timesince">{{ comment.created_at|timesince }} ago</small>
+        <div class="comments-section-container">
+            <div class="comments-section">
+                <h3>Bình luận</h3>
+                <!-- Hiển thị bình luận -->
+                {% for comment in post.comments.all %} {% if comment.parent_comment is None %}
+                <!-- Bình luận gốc -->
+                <div class="comment mt-3">
+                  <strong>{{ comment.author.username }}: {{ comment.content }}</strong>
+                  <small class="text-muted">{{ comment.created_at|timesince }} ago<br/></small>
+                  {% if comment.image %}
+                    <img src="{{ comment.image.url }}" alt="Bình luận hình ảnh" class="img-fluid">
+                  {% endif %}
 
-                      <!-- Phản hồi và xóa bình luận nằm trên cùng một dòng -->
-                      <div class="comment-actions">
-                          {% if request.user == comment.author or request.user.is_staff %}
-                              <form method="POST" action="{% url 'SocialMedia:delete_comment' comment.id %}" style="display:inline;">
-                                  {% csrf_token %}
-                                  <button type="submit" class="btn btn-link" title="Xóa bình luận">
-                                      <i class="fas fa-trash"></i>
-                                  </button>
-                              </form>
-                          {% endif %}
-
-                          <!-- Form trả lời bình luận -->
-                          <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}" style="display:inline;">
-                              {% csrf_token %}
-                              {{ form.as_p }}
-                              <input type="hidden" name="parent_comment" value="{{ comment.id }}">
-                              <button type="submit" name="comment" class="btn btn-secondary">Phản hồi</button>
-                          </form>
-                      </div>
-
-                      <!-- Hiển thị các bình luận trả lời -->
-                      {% if comment.replies.all %}
-                          <ul style="margin-left: 20px;">
-                              {% for reply in comment.replies.all %}
-                                  <li class="comment-reply">
-                                      <p><strong>{{ reply.author.username }}</strong>: {{ reply.content }}</p>
-                                      <small class="timesince">{{ reply.created_at|timesince }} ago</small>
-                                      <div class="comment-actions">
-                                          {% if request.user == reply.author or request.user.is_staff %}
-                                              <form method="POST" action="{% url 'SocialMedia:delete_comment' reply.id %}" style="display:inline;">
-                                                  {% csrf_token %}
-                                                  <button type="submit" class="btn btn-link" title="Xóa bình luận trả lời">
-                                                      <i class="fas fa-trash"></i>
-                                                  </button>
-                                              </form>
-                                          {% endif %}
-                                          
-                                          <!-- Form trả lời bình luận trả lời -->
-                                          <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}" style="display:inline;">
-                                              {% csrf_token %}
-                                              {{ form.as_p }}
-                                              <input type="hidden" name="parent_comment" value="{{ reply.id }}">
-                                              <button type="submit" name="comment" class="btn btn-secondary">Phản hồi</button>
-                                          </form>
-                                      </div>
-
-                                      <!-- Hiển thị các bình luận trả lời của bình luận trả lời -->
-                                      {% if reply.replies.all %}
-                                          <ul style="margin-left: 20px;">
-                                              {% for sub_reply in reply.replies.all %}
-                                                  <li>
-                                                      <p><strong>{{ sub_reply.author.username }}</strong>: {{ sub_reply.content }}</p>
-                                                      <small>{{ sub_reply.created_at|timesince }} ago</small>
-
-                                                      <div class="comment-actions">
-                                                          {% if request.user == sub_reply.author or request.user.is_staff %}
-                                                              <form method="POST" action="{% url 'SocialMedia:delete_comment' sub_reply.id %}" style="display:inline;">
-                                                                  {% csrf_token %}
-                                                                  <button type="submit" class="btn btn-link" title="Xóa bình luận trả lời">
-                                                                      <i class="fas fa-trash"></i>
-                                                                  </button>
-                                                              </form>
-                                                          {% endif %}
-                                                      </div>
-                                                  </li>
-                                              {% endfor %}
-                                          </ul>
-                                      {% endif %}
-                                  </li>
-                              {% endfor %}
-                          </ul>
-                      {% endif %}
-                  </li>
-              {% endfor %}
-          </ul>
-      {% else %}
-          <p>Chưa có bình luận nào.</p>
-      {% endif %}
-  
-      <!-- Form bình luận mới -->
-      <h3>Thêm bình luận</h3>
-      <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}">
-          {% csrf_token %}
-          {{ form.as_p }}
-          <button type="submit" name="comment" class="btn btn-primary">Gửi Bình Luận</button>
-      </form>
-    <div class="comments-section">
-        <h3>Bình luận</h3>
-        {% if comments %}
-            <ul>
-                {% for comment in comments %}
-                    <li>
-                        <p><strong>{{ comment.author.username }}</strong>: {{ comment.content }}</p>
-                        <small>{{ comment.created_at|timesince }} ago</small>
-                        
-                        {% if request.user == comment.author or request.user.is_staff %}
-                            <form method="POST" action="{% url 'SocialMedia:delete_comment' comment.id %}" style="display:inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-link" title="Xóa bình luận">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
+                    <!-- Hiển thị nút Like -->
+                    {% if user.is_authenticated %}
+                        {% if user != comment.author %}
+                        <a href="{% url 'SocialMedia:like_comment' comment.id %}" class="btn btn-outline-primary btn-sm mt-2">
+                            Like
+                        </a>
+                        {% else %}
+                            <button class="btn btn-secondary btn-sm mt-2" disabled>Không thể like bình luận của chính bạn</button>
                         {% endif %}
-                        
-                        <form method="POST" action="{% url 'SocialMedia:post_detail' post_id=post.id %}" style="display:inline;">
-                            {% csrf_token %}
-                            {{ form.as_p }}
-                            <input type="hidden" name="parent_comment" value="{{ comment.id }}">
-                            <button type="submit" name="comment" class="btn btn-secondary">Trả lời</button>
-                        </form>
-                        
-                        {% for reply in comment.replies.all %}
-                            <div style="margin-left: 20px;">
-                                <p><strong>{{ reply.author.username }}</strong>: {{ reply.content }}</p>
-                                <small>{{ reply.created_at|timesince }} ago</small>
-                                {% if request.user == reply.author or request.user.is_staff %}
-                                    <form method="POST" action="{% url 'SocialMedia:delete_comment' reply.id %}" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-link" title="Xóa bình luận trả lời">
-                                            <i class="fas fa-trash"></i> Xóa
-                                        </button>
-                                    </form>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>Chưa có bình luận nào.</p>
-        {% endif %}
-    </div>
-</div>
+                    {% else %}
+                        <button class="btn btn-outline-secondary btn-sm mt-2" disabled>Vui lòng đăng nhập để like</button>
+                    {% endif %}
 
+                    <!-- Hiển thị số lượng likes -->
+                    <span>{{ comment.likes.count }} Likes <br/></span>
+          
+                  <!-- Nút chỉnh sửa và xóa bình luận -->
+                  {% if comment.author == user or user.is_staff %}
+                  <a
+                    href="{% url 'SocialMedia:edit_post_comment' comment.id %}"
+                    class="btn btn-secondary btn-sm mt-2"
+                    >Chỉnh sửa</a
+                  >
+                  <a
+                    href="{% url 'SocialMedia:delete_post_comment' comment.id %}"
+                    class="btn btn-danger btn-sm mt-2"
+                    onclick="return confirm('Bạn có chắc chắn muốn xóa bình luận này không?');"
+                    >Xóa</a
+                  >
+                  {% endif %}
+          
+                  <!-- Nút phản hồi bình luận -->
+                  {% if user.is_authenticated %}
+                  <a
+                    href="{% url 'SocialMedia:reply_post_comment' comment.id %}"
+                    class="btn btn-info btn-sm mt-2"
+                    >Phản hồi</a
+                  >
+                  {% endif %}
+          
+                  <!-- Hiển thị các phản hồi -->
+                  <div class="replies" style="margin-left: 20px">
+                    {% for reply in comment.replies.all %}
+                    <div class="reply mt-2">
+                      <strong>{{ reply.author.username }}</strong>
+                      <p>{{ reply.content }}</p>
+                      <small class="text-muted"
+                        >{{ reply.created_at|timesince }} ago</small
+                      >
+          
+                      <!-- Các nút xóa và chỉnh sửa cho phản hồi -->
+                      {% if reply.author == user or user.is_staff %}
+                      <a
+                        href="{% url 'SocialMedia:edit_post_comment' reply.id %}"
+                        class="btn btn-secondary btn-sm mt-2"
+                        >Chỉnh sửa</a
+                      >
+                      <a
+                        href="{% url 'SocialMedia:delete_post_comment' reply.id %}"
+                        class="btn btn-danger btn-sm mt-2"
+                        onclick="return confirm('Bạn có chắc chắn muốn xóa phản hồi này không?');"
+                        >Xóa</a
+                      >
+                      {% endif %}
+                    </div>
+                    {% empty %}
+                    <p>Chưa có phản hồi nào.</p>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %} {% endfor %}
+            
+                <!-- Form bình luận mới -->
+                <h3>Thêm bình luận</h3>
+                <form method="POST" enctype="multipart/form-data" action="{% url 'SocialMedia:post_detail' post_id=post.id %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" name="comment" class="btn btn-primary">Gửi Bình Luận</button>
+                </form>
+          </div>
+</div>
 
 {% endblock %}
 

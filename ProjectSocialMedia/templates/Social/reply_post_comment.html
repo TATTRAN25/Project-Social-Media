@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block body_block %}
+  <div class="container mt-5">
+    <h2>Phản hồi bình luận</h2>
+
+    <p><strong>Bình luận gốc:</strong> {{ parent_comment.content }}</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Gửi phản hồi</button>
+    </form>
+  </div>
+{% endblock %}

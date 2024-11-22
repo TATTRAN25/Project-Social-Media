@@ -4,6 +4,20 @@
   <h2>{{ group.name }}</h2>
   <p>{{ group.description }}</p>
   <p><strong>Số thành viên:</strong> {{ group.members.count }}</p>
+
+  <!-- Thêm nút chỉnh sửa và xóa nhóm ở đầu trang -->
+  {% if user == group.creator %}
+    <div class="d-flex justify-content-between mb-4">
+      <!-- Nút Chỉnh sửa -->
+      <a href="{% url 'SocialMedia:update_group' group.id %}" class="btn btn-warning">Chỉnh sửa nhóm</a>
+      
+      <!-- Nút Xóa -->
+      <a href="{% url 'SocialMedia:delete_group' group.id %}" class="btn btn-danger"
+         onclick="return confirm('Bạn có chắc chắn muốn xóa nhóm này không?');">
+        Xóa nhóm
+      </a>
+    </div>
+  {% endif %}
   
   <!-- Hiển thị nút quản lý thành viên nếu người dùng là Admin -->
   {% if is_admin or user == group.creator %}
@@ -48,6 +62,11 @@
     <div class="pending-post">
       <strong>{{ post.title }}</strong><br />
       {{ post.content }}<br />
+      {% if post.image %}
+        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="img-fluid">
+      {% else %}
+        <p>No image available for this post.</p>
+      {% endif %}
       Trạng thái: {{ post.get_status_display }}
       <br />
       <a
@@ -66,6 +85,15 @@
   {% else %}
   <p>Chưa có bài viết chờ duyệt.</p>
   {% endif %} {% endif %}
+
+  <!-- Hiển thị nút đăng bài cho thành viên -->
+  {% if is_member or user == group.creator %}
+  <a
+    href="{% url 'SocialMedia:create_group_post' group.id %}"
+    class="btn btn-primary"
+    >Đăng bài</a
+  >
+  {% endif %}
 
   <h4>Posts</h4>
   {% if posts %}
@@ -99,8 +127,14 @@
         <!-- Nội dung bài viết -->
         <p class="card-text">{{ post.content }}</p>
 
+        {% if post.image %}
+          <img src="{{ post.image.url }}" alt="{{ post.title }}" class="img-fluid">
+        {% else %}
+          <p>No image available for this post.</p>
+        {% endif %}
+
         <h5>Bình luận</h5>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
           <textarea
             class="form-control"
@@ -118,11 +152,13 @@
         {% for comment in post.comments.all %} {% if comment.parent_comment is None %}
         <!-- Bình luận gốc -->
         <div class="comment mt-3">
-          <strong>{{ comment.author.username }}</strong>
-          <p>{{ comment.content }}</p>
+          <strong>{{ comment.author.username }}: {{ comment.content }}</strong>
           <small class="text-muted"
             >{{ comment.created_at|timesince }} ago</small
           >
+          {% if comment.image %}
+            <img src="{{ comment.image.url }}" alt="Bình luận hình ảnh" class="img-fluid">
+          {% endif %}
 
           <!-- Nút chỉnh sửa và xóa bình luận -->
           {% if comment.author == user or user.is_staff %}
@@ -185,15 +221,6 @@
   </div>
   {% else %}
   <p>Chưa có bài viết nào được phê duyệt.</p>
-  {% endif %}
-
-  <!-- Hiển thị nút đăng bài cho thành viên -->
-  {% if is_member or user == group.creator %}
-  <a
-    href="{% url 'SocialMedia:create_group_post' group.id %}"
-    class="btn btn-primary"
-    >Đăng bài</a
-  >
   {% endif %}
 
   <!-- Ẩn nút Tham gia nhóm nếu người dùng là người tạo nhóm -->
