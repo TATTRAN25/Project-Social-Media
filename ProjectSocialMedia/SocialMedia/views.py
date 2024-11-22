@@ -295,6 +295,38 @@ def page_detail(request, page_id):
         'user_liked': user_liked  #
     })
 
+
+# Get friend list to tag suggestion
+@login_required
+def get_friend_list(request):
+    # Lấy tất cả các mối quan hệ bạn bè liên quan đến người dùng đang đăng nhập
+    friend_ships = FriendShip.objects.filter(Q(user1=request.user) | Q(user2=request.user))
+    
+    # Tạo một từ điển để lưu trạng thái bạn bè
+    friend_status = {}
+    for friendship in friend_ships:
+        if friendship.user1.id == request.user.id:
+            friend_status[friendship.user2.id] = 'friend'
+        elif friendship.user2.id == request.user.id:
+            friend_status[friendship.user1.id] = 'friend'
+
+    # Search query
+    query = request.GET.get('friend_name', '').strip()
+    results = []
+
+    if query:
+        results = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
+
+    suggestions = []
+    for user in results:
+        if user.id not in friend_status:
+            suggestions.append({
+                'id': user.id,
+                'username': user.username,
+            })
+
+    return JsonResponse({'suggestions': suggestions})
+
 # Crud Post
 @login_required
 def manage_post(request, post_id=None, page_id=None):
@@ -324,9 +356,6 @@ def manage_post(request, post_id=None, page_id=None):
             
             new_post.view_mode = form.cleaned_data['view_mode']  
             new_post.save()
-
-            tagged_user =  form.cleaned_data['tagged_users']
-            Tag.objects.create(post=new_post, tagged_user=tagged_user)
 
             messages.success(request, f'Bài viết đã được {action.lower()} thành công!')
             return redirect('SocialMedia:post_detail', post_id=new_post.id)

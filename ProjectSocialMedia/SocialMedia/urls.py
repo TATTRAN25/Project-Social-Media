@@ -45,6 +45,7 @@ urlpatterns = [
     path('group/<int:group_id>/members/', views.manage_group_members, name='manage_group_members'),
     # url friend
     path('friends_list/', views.friends_list, name='friends_list'),
+    path('get_friend_list/', views.get_friend_list, name='get_friend_list'),
     path('search-friends/', views.search_friends, name='search_friends'),
     path('send_friend_request/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
     path('accept_friend_request/<int:request_id>/', views.accept_friend_request, name='accept_friend_request'),
