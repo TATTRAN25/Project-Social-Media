@@ -174,6 +174,7 @@ class GroupPost(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='posts')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(upload_to='group_posts/', null=True, blank=True)
     
     def __str__(self):
         return self.title
@@ -198,6 +199,7 @@ class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
     parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='comments/', null=True, blank=True)
 
     def __str__(self):
         return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
@@ -211,6 +213,7 @@ class GroupComment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
     parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='group_comments/', null=True, blank=True)
 
     def __str__(self):
         return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
@@ -236,3 +239,38 @@ class Message(models.Model):
 
     def __str__(self):
         return f'{self.sender.username}: {self.content}'
+    
+class PersonalPost(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personal_posts')
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    image = models.ImageField(upload_to='personal_posts/', null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+    
+class PersonalComment(models.Model):
+    personal_post = models.ForeignKey(PersonalPost, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    parent_comment = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.content[:50]  # Cắt 50 ký tự đầu tiên của bình luận
+
+    def is_reply(self):
+        return self.parent_comment is not None
+    
+class Like(models.Model):
+    comment = models.ForeignKey(Comment, related_name='likes', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name='liked_comments', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('comment', 'user')
+    def __str__(self):
+        return f"{self.user.username} likes {self.comment.id}"
+

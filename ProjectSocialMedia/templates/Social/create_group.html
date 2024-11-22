@@ -1,14 +1,30 @@
-<!-- SocialMedia/create_group.html -->
 {% extends "base.html" %}
 
 {% block body_block %}
 <div class="container mt-5">
-    <h2>Tạo Group mới</h2>
+    <h2 class="mb-4">Tạo Group mới</h2>
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-success">Tạo Group</button>
-    </form>
+    <div class="card p-4 shadow-sm">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Tên Group -->
+            <div class="mb-3">
+                <label for="id_name" class="form-label">Tên Group</label>
+                {{ form.name }}
+            </div>
+
+            <!-- Mô tả Group -->
+            <div class="mb-3">
+                <label for="id_description" class="form-label">Mô tả Group</label>
+                {{ form.description }}
+            </div>
+
+            <!-- Nút Submit -->
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Tạo Group</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

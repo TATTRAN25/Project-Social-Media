@@ -20,6 +20,9 @@ urlpatterns = [
     path('profiles/<int:pk>/', views.user_profile, name='user_profile'),
     path('profiles/update/<int:user_id>/', views.profile_update, name='profile_update'),
     path('profiles/delete/<int:user_id>/', views.profile_delete, name='profile_delete'),
+    path('create_personal_post/', views.create_personal_post, name='create_personal_post'),
+    path('personal_post/<int:pk>/edit/', views.edit_personal_post, name='edit_personal_post'),
+    path('personal_post/<int:pk>/delete/', views.delete_personal_post, name='delete_personal_post'),
     # url reset password with OTP
     path('send_otp/', views.send_otp, name='send_otp'),
     path('verify_otp/', views.verify_otp, name='verify_otp'),
@@ -38,7 +41,9 @@ urlpatterns = [
     path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
     path('share/<int:post_id>/', views.share_post, name='new_share'), 
     path('share/<int:share_id>/<int:post_id>/', views.share_post, name='share_post'),
-    path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
+    path('comment/<int:comment_id>/delete/', views.delete_post_comment, name='delete_post_comment'),
+    path('comment/<int:comment_id>/edit/', views.edit_post_comment, name='edit_post_comment'),
+    path('comment/<int:comment_id>/reply/', views.reply_post_comment, name='reply_post_comment'),
     path('group_comment/<int:comment_id>/delete/', views.delete_group_comment, name='delete_group_comment'),
     path('group_comment/<int:comment_id>/edit/', views.edit_group_comment, name='edit_group_comment'),
     path('group_comment/<int:comment_id>/reply/', views.reply_group_comment, name='reply_group_comment'),
@@ -77,4 +82,6 @@ urlpatterns = [
     # url massages
     path('chat/<int:receiver_id>/', views.chat_view, name='chat_view'),
     path('delete_message/<int:message_id>/', views.delete_message_view, name='delete_message'),
+    # like comments
+    path('like_comment/<int:comment_id>/', views.like_comment, name='like_comment'),
 ]

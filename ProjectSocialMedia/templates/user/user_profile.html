@@ -66,8 +66,6 @@
                     {% for group in groups %}
                         <li>
                             <a href="{% url 'SocialMedia:group_detail' group.pk %}">{{ group.name }}</a>
-                            <a href="{% url 'SocialMedia:update_group' group.pk %}" class="btn btn-warning">Sửa</a>
-                            <a href="{% url 'SocialMedia:delete_group' group.pk %}" class="btn btn-danger">Xóa</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -133,5 +131,57 @@
             {% endif %}
         </div>
     {% endif %}
+    <div class="user_posts">
+        <h3>Bài đăng của tôi:</h3>
+        {% if profile.user.personal_posts.all %}
+            <ul>
+                {% for post in profile.user.personal_posts.all %}
+                    <li>
+                        <h5>{{ post.title }}</h5>
+                        <p>{{ post.content }}</p>
+                        <small>{{ post.created_at|timesince }} ago</small>
+                        {% if post.image %}
+                            <img src="{{ post.image.url }}" alt="{{ post.title }}" class="img-fluid">
+                        {% else %}
+                            <p>No image available for this post.</p>
+                        {% endif %}
+                        <!-- Nút Chỉnh sửa và Xóa chỉ hiển thị cho người tạo bài viết -->
+                        {% if post.user == request.user %}
+                            <a href="{% url 'SocialMedia:edit_personal_post' pk=post.pk %}" class="btn btn-warning">Chỉnh sửa</a>
+                            <a href="{% url 'SocialMedia:delete_personal_post' pk=post.pk %}" class="btn btn-danger">Xóa</a>
+                        {% endif %}               
+
+                        <!-- Hiển thị bình luận -->
+                        <div class="comments">
+                            <h4>Bình luận ({{ post.comments.count }})</h4>
+                            {% if post.comments.all %}
+                                <ul>
+                                    {% for comment in post.comments.all %}
+                                        <li>
+                                            <strong>{{ comment.author.username }}:</strong> {{ comment.content }}
+                                            <small>{{ comment.created_at }}</small>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>Chưa có bình luận nào.</p>   
+                            {% endif %}
+                        </div>
+                
+                        <!-- Form bình luận -->
+                        <form method="POST">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <input type="hidden" name="post_id" value="{{ post.id }}">
+                            <button type="submit" class="btn btn-primary">Thêm bình luận</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Chưa có bài đăng nào.</p>
+        {% endif %}
+        <a href="{% url 'SocialMedia:create_personal_post' %}" class="btn btn-primary">Đăng bài mới</a>
+    </div>
 </div>
 {% endblock %}  

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="container">
+    <h1>Xác nhận xóa bài viết</h1>
+    <p>Bạn có chắc chắn muốn xóa bài viết này không?</p>
+    <p><strong>{{ post.title }}</strong></p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Xóa</button>
+    </form>
+    <a href="{% url 'SocialMedia:user_profile' pk=request.user.userprofileinfo.pk %}" class="btn btn-secondary mt-3">Hủy</a>
+</div>
+{% endblock %}

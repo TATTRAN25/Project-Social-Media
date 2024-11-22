@@ -2,17 +2,6 @@
 
 {% block body_block %}
 <div class="container mt-5">
-    <!-- Tiêu đề trang -->
-    <h2 class="mb-4">Đăng bài viết vào nhóm "{{ group.name }}"</h2>
-
-    {% comment %} <!-- Thông báo thành công khi bài viết được đăng -->
-    {% if messages %}
-        <div class="alert alert-success" role="alert">
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        </div>
-    {% endif %} {% endcomment %}
 
     <!-- Form Đăng bài -->
     <div class="card p-4 shadow-sm">
@@ -36,9 +25,6 @@
                 <label for="id_image" class="form-label">Hình ảnh (tuỳ chọn)</label>
                 {{ form.image }}
             </div>
-
-            <!-- Chọn nhóm -->
-            <input type="hidden" name="group" value="{{ group.id }}">
 
             <!-- Nút gửi -->
             <div class="d-flex justify-content-end">
