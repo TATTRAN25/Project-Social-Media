@@ -61,7 +61,7 @@
               <ul class="page-numbers">
                 {% for page in page_range %}
                   <li class="{% if page == current_page %}active{% endif %}">
-                    <a href="?page={{ page }}&q={{ request.GET.q }}" onclick="saveScrollPosition()">{{ page }}</a>
+                    <a href="?page={{ page }}&q={{ request.GET.q }}" onclick="saveScrollPosition()" class="{% if page == current_page %}active{% endif %}">{{ page }}</a>
                   </li>
                 {% endfor %}
               </ul>
@@ -155,7 +155,5 @@ window.onload = function() {
     }
 }
 </script>
-
-
 
 {% endblock %}
