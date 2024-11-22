@@ -319,7 +319,7 @@ def get_friend_list(request):
 
     suggestions = []
     for user in results:
-        if user.id not in friend_status:
+        if user.id in friend_status:
             suggestions.append({
                 'id': user.id,
                 'username': user.username,
