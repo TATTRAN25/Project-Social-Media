@@ -130,6 +130,29 @@
                 <p>Không có bài viết nào được chia sẻ.</p>
             {% endif %}
         </div>
+
+        <!-- Phần Nội Dung Trả Phí -->
+        <div class="paid-content-section">
+            <h3>Nội Dung Trả Phí</h3>
+            {% if paid_contents %}
+                <ul>
+                    {% for content in paid_contents %}
+                        <li>
+                            <a href="{% url 'SocialMedia:purchase_content' content.id %}">
+                                {{ content.title }} - Giá: {{ content.price }} VNĐ
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Không có nội dung nào để hiển thị.</p>
+            {% endif %}
+            
+            {% if profile.user == user %}
+                <a href="{% url 'SocialMedia:create_paid_content' %}" class="btn btn-primary">Thêm nội dung trả phí</a>
+            {% endif %}
+        </div>
+</div>
     {% endif %}
     <div class="user_posts">
         <h3>Bài đăng của tôi:</h3>
@@ -184,4 +207,4 @@
         <a href="{% url 'SocialMedia:create_personal_post' %}" class="btn btn-primary">Đăng bài mới</a>
     </div>
 </div>
-{% endblock %}  
+{% endblock %}

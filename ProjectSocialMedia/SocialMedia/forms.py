@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment, PersonalPost, PersonalComment
+from .models import UserProfileInfo, Page, Post, Comment, Group, GroupPost,Share, GroupComment, PersonalPost, PersonalComment,PaidContent
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, help_text='Mật khẩu phải có ít nhất 8 ký tự.')
@@ -176,3 +176,37 @@ class PersonalCommentForm(forms.ModelForm):
         widgets = {
             'content': forms.Textarea(attrs={'class': 'editable medium-editor-textarea', 'rows': 1, 'style': 'resize: none; height: auto;', 'placeholder': 'Viết bình luận...'}),
         }
+        
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            
+            # Kiểm tra xem có thiếu trường nào không
+            if not self.fields:
+                raise forms.ValidationError("You must specify at least one field.")
+            
+class PaidContentForm(forms.ModelForm):
+    class Meta:
+        model = PaidContent
+        fields = ['title', 'content', 'price', 'image']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập tiêu đề...',
+                'required': 'required',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập nội dung...',
+                'rows': 5,
+                'required': 'required',
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nhập giá (VNĐ)...',
+                'required': 'required',
+            }),
+            'image': forms.ClearableFileInput(attrs={
+                'class': 'form-control-file',
+            }),
+        }
+

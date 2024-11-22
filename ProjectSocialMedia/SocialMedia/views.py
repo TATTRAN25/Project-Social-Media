@@ -16,9 +16,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Q
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
-from django.views.decorators.cache import never_cache
+from django.core.paginator import Paginator
 
 from .forms import (
     UserRegistrationForm,
@@ -32,7 +31,9 @@ from .forms import (
     ShareForm,
     PersonalPostForm,
     PersonalCommentForm,
+    PaidContentForm,
 )
+
 from .models import (
     UserProfileInfo,
     PasswordResetOTP,
@@ -56,7 +57,11 @@ from .models import (
     PersonalPost,
     PersonalComment,
     Like,
+    PaidContent,
+    VirtualPayment,
+    Purchase,
 )
+
 # Tự động thêm profile nếu tạo tk admin
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -129,7 +134,7 @@ def profile_list(request):
 def user_profile(request, pk):
     profile = get_object_or_404(UserProfileInfo, pk=pk)
     pages = Page.objects.filter(author=profile.user)
-    groups = Group.objects.filter(creator=profile.user)  # Lọc các group mà người dùng là creator
+    groups = Group.objects.filter(creator=profile.user)
     join_requests = JoinRequest.objects.filter(group__creator=request.user, status='pending')
     current_user = request.user
     shared_posts = Share.objects.filter(user=profile.user).select_related('post')
@@ -152,6 +157,7 @@ def user_profile(request, pk):
             messages.error(request, 'Có lỗi xảy ra. Không thể tìm thấy bài đăng.')
     else:
         form = PersonalCommentForm()
+    paid_contents = PaidContent.objects.filter(author=profile.user, is_active=True)
 
     # Get blocked user
     blocked_user = BlockedFriend()
@@ -159,12 +165,26 @@ def user_profile(request, pk):
         blocked_user = BlockedFriend.objects.get(
             Q(blocker=current_user, blocked=pk) | Q(blocker=pk, blocked=current_user)
         )
+
     # Get follow status
     follow = Follow()
     if Follow.objects.filter(follower=current_user, following=pk).exists():
         follow = Follow.objects.get(follower=current_user, following=pk)
-    
-    return render(request, 'user/user_profile.html', {'profile': profile, 'pages': pages , 'current_user':current_user, 'blocked_user' : blocked_user, 'join_requests': join_requests, 'groups': groups, 'follow':follow, 'shared_posts': shared_posts, 'personal_posts': personal_posts, 'form': form})
+
+    return render(request, 'user/user_profile.html', {
+        'profile': profile,
+        'pages': pages,
+        'current_user': current_user,
+        'blocked_user': blocked_user,
+        'join_requests': join_requests,
+        'groups': groups,
+        'follow': follow,
+        'shared_posts': shared_posts, 
+        'personal_posts': personal_posts, 
+        'form': form,
+        'shared_posts': shared_posts,
+        'paid_contents': paid_contents
+    })
 
 @login_required
 def profile_update(request, user_id):
@@ -751,12 +771,88 @@ def share_post(request, share_id=None, post_id=None):
         'post': post, 
     })
 
+@login_required
+def manage_paid_content(request, content_id=None):
+    # Kiểm tra xem có content_id không
+    if content_id:
+        content = get_object_or_404(PaidContent, id=content_id, author=request.user)
+        form = PaidContentForm(instance=content)
+    else:
+        content = None
+        form = PaidContentForm()
 
+    if request.method == 'POST':
+        # Nếu có nội dung, kiểm tra yêu cầu xóa
+        if 'delete' in request.POST:
+            content.delete()  # Xóa nội dung
+            return redirect('SocialMedia:user_profile', pk=request.user.id)
+
+        # Xử lý lưu nội dung
+        form = PaidContentForm(request.POST, request.FILES, instance=content)
+        if form.is_valid():
+            paid_content = form.save(commit=False)
+            paid_content.author = request.user
+            paid_content.save()
+            return redirect('SocialMedia:user_profile', pk=request.user.id)
+
+    return render(request, 'OnlyFan/create_paid_content.html', {'form': form, 'content': content})
+
+@login_required
+def purchase_content(request, content_id):
+    content = get_object_or_404(PaidContent, id=content_id)
+
+    # Kiểm tra xem người dùng đã mua nội dung chưa
+    has_purchased = Purchase.objects.filter(user=request.user, content=content).exists()
+
+    if request.method == 'POST':
+        # Tạo thanh toán ảo
+        payment_amount = content.price
+        payment = VirtualPayment.objects.create(user=request.user, amount=payment_amount, is_successful=True)  # Giả lập thanh toán thành công
+
+        # Ghi nhận giao dịch thực tế
+        Purchase.objects.create(user=request.user, content=content, amount=payment_amount)  # Ghi nhận giao dịch
+
+        # Gửi email thông báo cho người dùng
+        send_mail(
+            subject='Xác Nhận Thanh Toán',
+            message=f'Chúc mừng! Bạn đã thanh toán thành công nội dung "{content.title}" với giá {payment_amount} VNĐ.',
+            from_email='anhtuan251104@gmail.com',  
+            recipient_list=[request.user.email],
+            fail_silently=False,
+        )
+
+        messages.success(request, 'Thanh toán thành công! Email xác nhận đã được gửi.')
+        return redirect('SocialMedia:user_profile', pk=request.user.id)
+
+    return render(request, 'OnlyFan/purchase_content.html', {
+        'content': content,
+        'has_purchased': has_purchased
+    })
 def about(request):
-    return render(request, 'home/about.html')
+    # Lấy tất cả nội dung trả phí
+    paid_contents = PaidContent.objects.filter(is_active=True)
+    return render(request, 'home/about.html', {'paid_contents': paid_contents})
 
 def blog(request):
-    return render(request, 'home/blog.html')
+    query = request.GET.get('q')
+    if query:
+        posts = Post.objects.filter(title__icontains=query).order_by('-created_at')
+    else:
+        posts = Post.objects.all().order_by('-created_at')
+
+    paginator = Paginator(posts, 6)  # Hiển thị 6 bài viết mỗi trang
+    page_number = request.GET.get('page')
+    paginated_posts = paginator.get_page(page_number)
+
+    recent_posts = Post.objects.all().order_by('-created_at')[:3]  # Lấy 5 bài viết gần đây
+    page_range = paginator.page_range
+
+    return render(request, 'home/blog.html', {
+        'posts': paginated_posts,
+        'recent_posts': recent_posts,
+        'page_range': page_range,
+        'current_page': page_number,
+    })
 
 def post_details(request):
     return render(request, 'home/post_details.html')

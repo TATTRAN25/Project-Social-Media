@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+<div class="custom-paid-content-container">
+    <h1 class="custom-title">{% if content %}Sửa Nội Dung Trả Phí{% else %}Tạo Nội Dung Trả Phí{% endif %}</h1>
+    <form method="post" class="custom-form" enctype="multipart/form-data">  
+        {% csrf_token %}
+        {{ form.as_p }} 
+        <button type="submit" class="custom-submit-button">{% if content %}Cập Nhật Nội Dung{% else %}Đăng Nội Dung{% endif %}</button>
+
+        {% if content %}
+            <button type="submit" name="delete" class="btn btn-danger mt-3" onclick="return confirm('Bạn có chắc chắn muốn xóa nội dung này?');">Xóa Nội Dung</button>
+        {% endif %}
+    </form>
+    
+    <a href="{% url 'SocialMedia:user_profile' request.user.id %}" class="custom-back-link">Trở về</a>
+</div>
+{% endblock %}

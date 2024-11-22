@@ -84,4 +84,8 @@ urlpatterns = [
     path('delete_message/<int:message_id>/', views.delete_message_view, name='delete_message'),
     # like comments
     path('like_comment/<int:comment_id>/', views.like_comment, name='like_comment'),
+    # url OnlyFan
+    path('create-paid-content/', views.manage_paid_content, name='create_paid_content'),
+    path('edit-paid-content/<int:content_id>/', views.manage_paid_content, name='edit_paid_content'),
+    path('content/<int:content_id>/purchase/', views.purchase_content, name='purchase_content'),
 ]
