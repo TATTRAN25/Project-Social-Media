@@ -104,7 +104,6 @@
                     'X-Requested-With': 'XMLHttpRequest',  // For AJAX
                     'Content-Type': 'application/json',    // Optional
                 },
-                body: JSON.stringify({ tagged_users: tagged_user })
             })
                 .then(response => response.json())
                 .then(data => {
