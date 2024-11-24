@@ -171,19 +171,7 @@ def user_profile(request, pk):
     if Follow.objects.filter(follower=current_user, following=pk).exists():
         follow = Follow.objects.get(follower=current_user, following=pk)
 
-    return render(request, 'user/user_profile.html', {
-        'profile': profile,
-        'pages': pages,
-        'current_user': current_user,
-        'blocked_user': blocked_user,
-        'join_requests': join_requests,
-        'groups': groups,
-        'follow': follow,
-        'shared_posts': shared_posts, 
-        'personal_posts': personal_posts, 
-        'form': form,
-        'shared_posts': shared_posts,
-        'paid_contents': paid_contents
+    return render(request, 'user/user_profile.html', { 'profile': profile, 'pages': pages, 'current_user': current_user, 'blocked_user': blocked_user, 'join_requests': join_requests, 'groups': groups, 'follow': follow, 'shared_posts': shared_posts,  'personal_posts': personal_posts,  'form': form, 'shared_posts': shared_posts, 'paid_contents': paid_contents
     })
 
 @login_required
